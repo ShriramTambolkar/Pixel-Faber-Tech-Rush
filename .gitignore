@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.dart_tool/
+.pub-cache/
+.pub/
+
+# Environment & local settings
+.env
+.env.local
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

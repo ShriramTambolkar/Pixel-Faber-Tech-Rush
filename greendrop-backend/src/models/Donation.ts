@@ -1,0 +1,55 @@
+import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IDonation extends Document {
+  donorId: string;
+  donorName: string;
+  title: string;
+  category: string;
+  condition: string;
+  weightKg: number;
+  photoUrls: string[];
+  address: {
+    formattedAddress: string;
+    location: {
+      type: string;
+      coordinates: [number, number];
+    };
+  };
+  status: 'AVAILABLE' | 'REQUESTED' | 'ACCEPTED' | 'COMPLETED' | 'COLLECTED';
+  requestedByNgoId?: string;
+  requestedByNgoName?: string;
+  verificationCode: string;
+  createdAt: Date;
+}
+
+const donationSchema = new Schema<IDonation>(
+  {
+    donorId: { type: String, required: true },
+    donorName: { type: String, default: 'Anonymous Donor' },
+    title: { type: String, required: true },
+    category: { type: String, required: true },
+    condition: { type: String, required: true },
+    weightKg: { type: Number, required: true },
+    photoUrls: { type: [String], default: [] },
+    address: {
+      formattedAddress: { type: String, required: true },
+      location: {
+        type: { type: String, enum: ['Point'], default: 'Point' },
+        coordinates: { type: [Number], required: true },
+      },
+    },
+    status: { 
+      type: String, 
+      enum: ['AVAILABLE', 'REQUESTED', 'ACCEPTED', 'COMPLETED'], 
+      default: 'AVAILABLE' 
+    },
+    requestedByNgoId: { type: String },
+    requestedByNgoName: { type: String },
+    verificationCode: { type: String, required: true },
+  },
+  { timestamps: true }
+);
+
+donationSchema.index({ 'address.location': '2dsphere' });
+
+export const Donation = mongoose.model<IDonation>('Donation', donationSchema);
