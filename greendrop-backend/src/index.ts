@@ -42,14 +42,17 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/version', (_req: Request, res: Response) => {
+const sendVersionResponse = (_req: Request, res: Response) => {
   res.json({
     success: true,
-    version: '1.0.1',
+    version: '1.0.2',
     updateAvailable: true,
     downloadUrl: 'https://github.com/shubhamn-coder/PixelFaber-Tech-Rush/releases/latest/download/app-release.apk',
   });
-});
+};
+
+app.get('/api/version', sendVersionResponse);
+app.get('/version', sendVersionResponse);
 
 function isValidId(id: string): boolean {
   return mongoose.isValidObjectId(id);
