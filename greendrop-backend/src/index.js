@@ -33,7 +33,8 @@ app.use((0, cors_1.default)({
         callback(new Error('Origin is not allowed by CORS.'));
     },
 }));
-app.use(express_1.default.json({ limit: '10mb' }));
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 app.get('/api/health', (_req, res) => {
     res.status(mongoose_1.default.connection.readyState === 1 ? 200 : 503).json({
@@ -41,16 +42,18 @@ app.get('/api/health', (_req, res) => {
         database: mongoose_1.default.connection.readyState === 1 ? 'connected' : 'unavailable',
     });
 });
-app.get('/api/version', (_req, res) => {
+const sendVersionResponse = (_req, res) => {
     res.json({
         success: true,
-        version: '1.0.1',
+        version: '1.0.2',
         updateAvailable: true,
-        downloadUrl: 'https://greendrop-ggck.onrender.com/app-release.apk',
+        downloadUrl: 'https://github.com/shubhamn-coder/PixelFaber-Tech-Rush/releases/latest/download/app-release.apk',
     });
-});
+};
+app.get('/api/version', sendVersionResponse);
+app.get('/version', sendVersionResponse);
 function isValidId(id) {
-    return mongoose_1.default.isValidObjectId(id);
+    return Boolean(id) && mongoose_1.default.isValidObjectId(id);
 }
 // 1. AUTHENTICATION & PUBLIC PROFILES
 app.post('/api/auth/register', async (req, res) => {
@@ -398,13 +401,14 @@ app.post('/api/donations', async (req, res) => {
     try {
         const { donorId, donorName, title, category, condition, weightKg, address, photoUrls } = req.body;
         const normalizedWeight = Number(weightKg);
-        if (!isValidId(donorId) || !title?.trim() || !category || !condition || !address?.trim() ||
+        if (!donorId || !title?.trim() || !category || !condition || !address?.trim() ||
             !Number.isFinite(normalizedWeight) || normalizedWeight <= 0) {
             return res.status(400).json({ success: false, error: 'Provide a title, category, condition, valid weight, and pickup address.' });
         }
+        const safeDonorId = isValidId(donorId) ? donorId : new mongoose_1.default.Types.ObjectId().toString();
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         const newDonation = new Donation_1.Donation({
-            donorId,
+            donorId: safeDonorId,
             donorName: donorName || 'Anonymous Donor',
             title,
             category,

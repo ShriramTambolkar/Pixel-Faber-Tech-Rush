@@ -31,7 +31,8 @@ app.use(cors({
     callback(new Error('Origin is not allowed by CORS.'));
   },
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
@@ -55,7 +56,7 @@ app.get('/api/version', sendVersionResponse);
 app.get('/version', sendVersionResponse);
 
 function isValidId(id: string): boolean {
-  return mongoose.isValidObjectId(id);
+  return Boolean(id) && mongoose.isValidObjectId(id);
 }
 
 // 1. AUTHENTICATION & PUBLIC PROFILES
@@ -425,14 +426,17 @@ app.post('/api/donations', async (req: Request, res: Response) => {
   try {
     const { donorId, donorName, title, category, condition, weightKg, address, photoUrls } = req.body;
     const normalizedWeight = Number(weightKg);
-    if (!isValidId(donorId) || !title?.trim() || !category || !condition || !address?.trim() ||
+
+    if (!donorId || !title?.trim() || !category || !condition || !address?.trim() ||
         !Number.isFinite(normalizedWeight) || normalizedWeight <= 0) {
       return res.status(400).json({ success: false, error: 'Provide a title, category, condition, valid weight, and pickup address.' });
     }
+
+    const safeDonorId = isValidId(donorId) ? donorId : new mongoose.Types.ObjectId().toString();
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     const newDonation = new Donation({
-      donorId,
+      donorId: safeDonorId,
       donorName: donorName || 'Anonymous Donor',
       title,
       category,
