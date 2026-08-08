@@ -47,7 +47,7 @@ app.get('/api/version', (_req: Request, res: Response) => {
     success: true,
     version: '1.0.1',
     updateAvailable: true,
-    downloadUrl: 'https://greendrop-ggck.onrender.com/app-release.apk',
+    downloadUrl: 'https://github.com/shubhamn-coder/PixelFaber-Tech-Rush/releases/latest/download/app-release.apk',
   });
 });
 
