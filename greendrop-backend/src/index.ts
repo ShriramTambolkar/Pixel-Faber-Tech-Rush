@@ -33,7 +33,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({
@@ -672,14 +672,21 @@ const PORT = Number(process.env.PORT) || 5000;
 
 async function startServer() {
   if (!MONGO_URI) {
-    throw new Error('MONGO_URI is required. Copy .env.example to .env and configure MongoDB.');
+    console.warn('⚠️ WARNING: MONGO_URI or MONGODB_URI is not set in Environment Variables.');
+  } else {
+    try {
+      await mongoose.connect(MONGO_URI);
+      console.log('✅ MongoDB connected successfully.');
+      await createDemoUserIfMissing('donor@greendrop.com');
+      await createDemoUserIfMissing('ngo@smilepune.org');
+      await createDemoUserIfMissing('admin@greendrop.org');
+      console.log('⚡ GreenDrop: Demo accounts pre-seeded & ready.');
+    } catch (dbErr: any) {
+      console.error(`⚠️ MongoDB Connection Error: ${dbErr.message}`);
+    }
   }
-  await mongoose.connect(MONGO_URI);
-  await createDemoUserIfMissing('donor@greendrop.com');
-  await createDemoUserIfMissing('ngo@smilepune.org');
-  await createDemoUserIfMissing('admin@greendrop.org');
-  console.log('⚡ GreenDrop: Demo accounts pre-seeded & ready.');
-  app.listen(PORT, () => console.log(`GreenDrop API listening on http://localhost:${PORT}`));
+
+  app.listen(PORT, '0.0.0.0', () => console.log(`🚀 GreenDrop API listening on port ${PORT}`));
 }
 
 startServer().catch((error: Error) => {
