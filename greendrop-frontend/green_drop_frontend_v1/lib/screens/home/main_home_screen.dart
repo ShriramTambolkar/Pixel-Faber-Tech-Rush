@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/greendrop_native_logo.dart';
 import '../auth/auth_screen.dart';
 
@@ -31,6 +34,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   final Map<int, Widget> _loadedScreens = {};
   bool _notificationsEnabled = true;
 
+  static const String currentAppVersion = '1.0.0';
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +43,106 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     _loadedScreens[_currentIndex] = RepaintBoundary(
       child: _getOrConstructScreen(_currentIndex),
     );
+
+    // Initialize Native System Notification Channel
+    NotificationService().init();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAdminWarning();
+      _checkAppUpdate();
+    });
+  }
+
+  void _checkAdminWarning() {
+    final warning = widget.user['warningMessage'] ?? widget.user['warning'];
+    if (warning != null && warning.toString().trim().isNotEmpty) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+              SizedBox(width: 8),
+              Text('🚨 Admin Warning', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('An administrative warning has been issued for your account:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(
+                  warning.toString(),
+                  style: TextStyle(fontSize: 13, color: Colors.red.shade900, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade800,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('OK, I Understand', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              onPressed: () => Navigator.pop(c),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _checkAppUpdate() async {
+    try {
+      final res = await ApiService.get('/version');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final latestVersion = data['version'] ?? '1.0.0';
+        final updateAvailable = data['updateAvailable'] ?? (latestVersion != currentAppVersion);
+        if (updateAvailable && mounted) {
+          ScaffoldMessenger.of(context).showMaterialBanner(
+            MaterialBanner(
+              backgroundColor: Colors.amber.shade800,
+              content: Text(
+                '🚀 New Update Available (v$latestVersion)! Download latest features.',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              leading: const Icon(Icons.system_update, color: Colors.white),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                  },
+                  child: const Text('DISMISS', style: TextStyle(color: Colors.white)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Downloading live update package...')),
+                    );
+                  },
+                  child: const Text('UPDATE NOW'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   Widget _getOrConstructScreen(int index) {

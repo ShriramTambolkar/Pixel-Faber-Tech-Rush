@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/ngo_profile_modal.dart';
 
 import '../../widgets/pulsing_badge.dart';
@@ -131,10 +132,14 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
   }
 
   Future<void> _openMap(String address) async {
-    final query = Uri.encodeComponent(address);
+    final cleanAddr = address.isEmpty ? 'Kothrud, Pune' : address;
+    final query = Uri.encodeComponent(cleanAddr);
     final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
-    if (await canLaunchUrl(url)) {
+    try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      final fallbackUrl = Uri.parse('https://maps.google.com/?q=$query');
+      await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -522,6 +527,11 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
                                 'ngoName': widget.user['name'],
                               },
                             );
+                            NotificationService().showNotification(
+                              id: 101,
+                              title: '🔔 Donation Requested!',
+                              body: '${widget.user['name'] ?? "SAMS Relief Network"} sent a pickup request for "${item['title'] ?? "item"}".',
+                            );
                             _fetchData();
                           },
                         ),
@@ -569,6 +579,43 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
 
                       if (status == 'ACCEPTED' || status == 'COMPLETED') ...[
                         Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.blue.shade300, width: 1),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.handshake, color: Colors.blue, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Connected with ${item['requestedByNgoName'] ?? item['claimedByName'] ?? 'SAMS Relief Network'}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                    color: Colors.blue.shade900,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                                tooltip: 'View NGO Profile',
+                                onPressed: () {
+                                  NgoProfileModal.show(
+                                    context,
+                                    item['requestedByNgoId'] ?? 'demo_ngo_001',
+                                    item['requestedByNgoName'] ?? 'SAMS Relief Network',
+                                    currentUser: widget.user,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.green.shade50,
@@ -593,7 +640,7 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
                                     Text(
                                       isOwner
                                           ? (item['requestedByNgoOfficeAddress'] ??
-                                              'Pune NGO Office')
+                                              'Kothrud, Pune, MH 411038')
                                           : (item['address']?['formattedAddress'] ??
                                               'Pune, India'),
                                       style: const TextStyle(fontSize: 12),
@@ -606,7 +653,7 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
                                 onPressed: () => _openMap(
                                   isOwner
                                       ? (item['requestedByNgoOfficeAddress'] ??
-                                          'Pune NGO Office')
+                                          'Kothrud, Pune, MH 411038')
                                       : (item['address']?['formattedAddress'] ??
                                           'Pune, India'),
                                 ),

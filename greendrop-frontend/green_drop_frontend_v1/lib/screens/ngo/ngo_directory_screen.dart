@@ -38,6 +38,26 @@ class _NgoDirectoryScreenState extends State<NgoDirectoryScreen> {
     } catch (_) {
       setState(() => _isLoading = false);
     }
+
+    if (_ngos.isEmpty && mounted) {
+      setState(() {
+        _ngos = [
+          {
+            '_id': 'demo_ngo_001',
+            'name': 'SAMS Relief Network',
+            'email': 'ngo@samsrelief.org',
+            'role': 'NGO',
+            'phoneNumber': '+91 9876500112',
+            'ngoDetails': {
+              'darpanId': 'MH/2026/0048123',
+              'officeAddress': 'Kothrud, Pune, MH 411038',
+              'isVerified': true,
+              'description': 'SAMS Relief Network is dedicated to community welfare, disaster relief, and food distribution in Kothrud, Pune.',
+            },
+          }
+        ];
+      });
+    }
   }
 
   @override

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/ngo_profile_modal.dart';
 
 class NgoRequirementsScreen extends StatefulWidget {
@@ -40,31 +41,19 @@ class _NgoRequirementsScreenState extends State<NgoRequirementsScreen> {
           _requirements = [
             {
               '_id': 'req_sample_1',
-              'ngoId': 'ngo_smile_pune',
-              'ngoName': 'Smile Foundation Pune',
-              'ngoPhone': '+91 9123456789',
-              'ngoAddress': 'Deccan Gymkhana, Pune',
+              'ngoId': 'demo_ngo_001',
+              'ngoName': 'SAMS Relief Network',
+              'ngoPhone': '+91 9876500112',
+              'ngoAddress': 'Kothrud, Pune, MH 411038',
               'title': 'Urgent: 50 Winter Blankets for Slum Drive',
+              'itemName': '50 Winter Blankets',
+              'quantityNeeded': '50 Blankets',
               'category': 'Clothes & Wearing',
-              'requiredQuantity': 50,
               'urgencyLevel': 'HIGH',
               'helpfulDonors': [
-                {'donorId': 'd101', 'donorName': 'Aarav Sharma', 'offeredHelp': true}
+                {'donorId': 'd101', 'donorName': 'Aarav Sharma', 'donorPhone': '+91 9876543210', 'donorEmail': 'aarav@gmail.com', 'message': 'Can provide 10 new blankets from Kothrud.'}
               ],
               'createdAt': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
-            },
-            {
-              '_id': 'req_sample_2',
-              'ngoId': 'ngo_hope_foundation',
-              'ngoName': 'Hope Children Trust',
-              'ngoPhone': '+91 9876543210',
-              'ngoAddress': 'Kothrud, Pune',
-              'title': '20 Primary School Study Desks & Chairs',
-              'category': 'Cupboards & Furniture',
-              'requiredQuantity': 20,
-              'urgencyLevel': 'MEDIUM',
-              'helpfulDonors': [],
-              'createdAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
             },
           ];
         }
@@ -83,7 +72,7 @@ class _NgoRequirementsScreenState extends State<NgoRequirementsScreen> {
 
   void _showOfferHelpDialog(Map<String, dynamic> reqItem) {
     final phoneCtrl = TextEditingController(text: widget.user['phoneNumber'] ?? '');
-    final msgCtrl = TextEditingController(text: 'I would like to help provide ${reqItem['itemName']} for your NGO.');
+    final msgCtrl = TextEditingController(text: 'I would like to help provide ${reqItem['itemName'] ?? "items"} for your NGO.');
 
     showDialog(
       context: context,
@@ -94,7 +83,7 @@ class _NgoRequirementsScreenState extends State<NgoRequirementsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Requirement: ${reqItem['itemName']} (${reqItem['quantityNeeded']})',
+                'Requirement: ${reqItem['itemName'] ?? reqItem['title']} (${reqItem['quantityNeeded'] ?? "Requested"})',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -137,6 +126,13 @@ class _NgoRequirementsScreenState extends State<NgoRequirementsScreen> {
                 'donorEmail': widget.user['email'],
                 'message': msgCtrl.text,
               });
+
+              NotificationService().showNotification(
+                id: 202,
+                title: '🔔 Help Offer Submitted!',
+                body: 'Your offer to help ${reqItem['ngoName'] ?? "SAMS Relief Network"} was sent successfully!',
+              );
+
               navigator.pop();
               messenger.showSnackBar(
                 const SnackBar(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 
 class NgoAchievementsScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class NgoAchievementsScreen extends StatefulWidget {
 class _NgoAchievementsScreenState extends State<NgoAchievementsScreen> {
   List<dynamic> _achievements = [];
   bool _isLoading = true;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -43,82 +45,130 @@ class _NgoAchievementsScreenState extends State<NgoAchievementsScreen> {
     final photoCtrl = TextEditingController(
       text: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600',
     );
+    List<String> selectedPhotos = [];
 
     showDialog(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Post NGO Achievement Showcase'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Achievement Title *',
-                  hintText: 'e.g. Annual Winter Relief Campaign 2026',
-                  border: OutlineInputBorder(),
+      builder: (c) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Post NGO Achievement Showcase'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Achievement Title *',
+                    hintText: 'e.g. Annual Winter Relief Campaign 2026',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: descCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description & Impact Details *',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Description & Impact Details *',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: metricsCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Impact Metrics (e.g., 500 Blankets Distributed)',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: metricsCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Impact Metrics (e.g., 500 Blankets Distributed)',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: photoCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Achievement Showcase Photo URL',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 42),
+                    side: const BorderSide(color: Colors.green),
+                  ),
+                  icon: const Icon(Icons.photo_library, color: Colors.green),
+                  label: Text(
+                    selectedPhotos.isNotEmpty
+                        ? '${selectedPhotos.length} Device Photos Selected'
+                        : 'Select Multiple Device Photos',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () async {
+                    final List<XFile> images = await _picker.pickMultiImage();
+                    if (images.isNotEmpty) {
+                      setDialogState(() {
+                        selectedPhotos = images.map((e) => e.path).toList();
+                      });
+                    }
+                  },
                 ),
-              ),
-            ],
+                if (selectedPhotos.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 60,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: selectedPhotos.length,
+                      itemBuilder: (c, i) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            width: 60,
+                            color: Colors.green.shade100,
+                            child: const Icon(Icons.image, color: Colors.green),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                TextField(
+                  controller: photoCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Or Paste Showcase Cover Photo URL',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade800),
-            onPressed: () async {
-              final navigator = Navigator.of(c);
-              final messenger = ScaffoldMessenger.of(context);
-              if (titleCtrl.text.trim().isEmpty || descCtrl.text.trim().isEmpty) {
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade800),
+              onPressed: () async {
+                final navigator = Navigator.of(c);
+                final messenger = ScaffoldMessenger.of(context);
+                if (titleCtrl.text.trim().isEmpty || descCtrl.text.trim().isEmpty) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Title and description are required!')),
+                  );
+                  return;
+                }
+                List<String> photoUrls = selectedPhotos.isNotEmpty
+                    ? selectedPhotos
+                    : (photoCtrl.text.trim().isNotEmpty ? [photoCtrl.text.trim()] : []);
+                await ApiService.post('/ngo/achievements', {
+                  'ngoId': widget.user['_id'],
+                  'ngoName': widget.user['name'],
+                  'title': titleCtrl.text,
+                  'description': descCtrl.text,
+                  'photoUrls': photoUrls,
+                  'impactMetrics': metricsCtrl.text,
+                });
+                navigator.pop();
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Title and description are required!')),
+                  const SnackBar(content: Text('🏆 NGO Achievement published to global showcase!')),
                 );
-                return;
-              }
-              final photoUrls = photoCtrl.text.trim().isNotEmpty ? [photoCtrl.text.trim()] : [];
-              await ApiService.post('/ngo/achievements', {
-                'ngoId': widget.user['_id'],
-                'ngoName': widget.user['name'],
-                'title': titleCtrl.text,
-                'description': descCtrl.text,
-                'photoUrls': photoUrls,
-                'impactMetrics': metricsCtrl.text,
-              });
-              navigator.pop();
-              messenger.showSnackBar(
-                const SnackBar(content: Text('🏆 NGO Achievement published to global showcase!')),
-              );
-              _fetch();
-            },
-            child: const Text('Publish Achievement', style: TextStyle(color: Colors.white)),
-          )
-        ],
+                _fetch();
+              },
+              child: const Text('Publish Achievement', style: TextStyle(color: Colors.white)),
+            )
+          ],
+        ),
       ),
     );
   }

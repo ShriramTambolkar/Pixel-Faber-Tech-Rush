@@ -41,6 +41,14 @@ app.get('/api/health', (_req, res) => {
         database: mongoose_1.default.connection.readyState === 1 ? 'connected' : 'unavailable',
     });
 });
+app.get('/api/version', (_req, res) => {
+    res.json({
+        success: true,
+        version: '1.0.1',
+        updateAvailable: true,
+        downloadUrl: 'https://greendrop-ggck.onrender.com/app-release.apk',
+    });
+});
 function isValidId(id) {
     return mongoose_1.default.isValidObjectId(id);
 }
@@ -95,19 +103,20 @@ async function createDemoUserIfMissing(email) {
             });
             await user.save();
         }
-        else if (email === 'ngo@smilepune.org') {
+        else if (email === 'ngo@samsrelief.org' || email === 'ngo@smilepune.org') {
             user = new User_1.User({
                 role: 'NGO',
-                name: 'Smile Foundation Pune',
-                email: 'ngo@smilepune.org',
+                name: 'SAMS Relief Network',
+                email: 'ngo@samsrelief.org',
                 passwordHash: 'demo123',
-                phoneNumber: '+91 9123456789',
+                phoneNumber: '+91 9876500112',
                 ngoDetails: {
                     darpanId: 'MH/2026/0048123',
                     trustDeedUrl: 'https://example.com/ngo-trust-deed.pdf',
                     panCardUrl: 'https://example.com/ngo-pan-card.pdf',
-                    officeAddress: 'Deccan Gymkhana, Pune, MH 411004',
+                    officeAddress: 'Kothrud, Pune, MH 411038',
                     isVerified: true,
+                    description: 'SAMS Relief Network is dedicated to community welfare, disaster relief, and food distribution in Kothrud, Pune.',
                 },
             });
             await user.save();
@@ -628,23 +637,26 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 const PORT = Number(process.env.PORT) || 5000;
-async function startServer() {
+async function connectWithRetry() {
     if (!MONGO_URI) {
         console.warn('⚠️ WARNING: MONGO_URI or MONGODB_URI is not set in Environment Variables.');
+        return;
     }
-    else {
-        try {
-            await mongoose_1.default.connect(MONGO_URI);
-            console.log('✅ MongoDB connected successfully.');
-            await createDemoUserIfMissing('donor@greendrop.com');
-            await createDemoUserIfMissing('ngo@smilepune.org');
-            await createDemoUserIfMissing('admin@greendrop.org');
-            console.log('⚡ GreenDrop: Demo accounts pre-seeded & ready.');
-        }
-        catch (dbErr) {
-            console.error(`⚠️ MongoDB Connection Error: ${dbErr.message}`);
-        }
+    try {
+        await mongoose_1.default.connect(MONGO_URI);
+        console.log('✅ MongoDB connected successfully.');
+        await createDemoUserIfMissing('donor@greendrop.com');
+        await createDemoUserIfMissing('ngo@smilepune.org');
+        await createDemoUserIfMissing('admin@greendrop.org');
+        console.log('⚡ GreenDrop: Demo accounts pre-seeded & ready.');
     }
+    catch (dbErr) {
+        console.error(`⚠️ MongoDB Connection Error: ${dbErr.message}. Retrying connection in 5s...`);
+        setTimeout(connectWithRetry, 5000);
+    }
+}
+async function startServer() {
+    connectWithRetry();
     app.listen(PORT, '0.0.0.0', () => console.log(`🚀 GreenDrop API listening on port ${PORT}`));
 }
 startServer().catch((error) => {

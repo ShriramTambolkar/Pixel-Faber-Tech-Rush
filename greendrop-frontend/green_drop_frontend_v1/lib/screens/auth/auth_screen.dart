@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import '../../widgets/greendrop_native_logo.dart';
 import '../home/main_home_screen.dart';
@@ -29,6 +30,28 @@ class _AuthScreenState extends State<AuthScreen> {
   final _panUrlController = TextEditingController();
   final _officeAddressController = TextEditingController();
 
+  String? _trustDeedPath;
+  String? _exemption80GPath;
+  String? _certificate12APath;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickDocument(String type) async {
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      setState(() {
+        if (type == 'trust') {
+          _trustDeedPath = file.path;
+          _certUrlController.text = file.name;
+        } else if (type == '80g') {
+          _exemption80GPath = file.path;
+          _panUrlController.text = file.name;
+        } else if (type == '12a') {
+          _certificate12APath = file.path;
+        }
+      });
+    }
+  }
+
   void _fillDemoAccount(String type) {
     setState(() {
       _passwordController.text = 'demo123';
@@ -40,13 +63,13 @@ class _AuthScreenState extends State<AuthScreen> {
         _phoneController.text = '+91 9876543210';
       } else if (type == 'NGO') {
         _role = 'NGO';
-        _nameController.text = 'Smile Foundation Pune';
-        _emailController.text = 'ngo@smilepune.org';
-        _phoneController.text = '+91 9123456789';
+        _nameController.text = 'SAMS Relief Network';
+        _emailController.text = 'ngo@samsrelief.org';
+        _phoneController.text = '+91 9876500112';
         _darpanIdController.text = 'MH/2026/0048123';
-        _certUrlController.text = 'https://example.com/ngo-trust-deed.pdf';
-        _panUrlController.text = 'https://example.com/ngo-pan-card.pdf';
-        _officeAddressController.text = 'Deccan Gymkhana, Pune, MH 411004';
+        _certUrlController.text = 'trust_deed_document.pdf';
+        _panUrlController.text = '80g_tax_certificate.pdf';
+        _officeAddressController.text = 'Kothrud, Pune, MH 411038';
       } else if (type == 'ADMIN') {
         _role = 'ADMIN';
         _nameController.text = 'Platform System Admin';
@@ -65,18 +88,18 @@ class _AuthScreenState extends State<AuthScreen> {
         'role': 'ADMIN',
         'phoneNumber': '+91 0000000000',
       };
-    } else if (email.contains('ngo') || role == 'NGO') {
+    } else if (email.contains('ngo') || email.contains('sams') || role == 'NGO') {
       return {
         '_id': 'demo_ngo_001',
-        'name': 'Smile Foundation Pune',
-        'email': 'ngo@smilepune.org',
+        'name': 'SAMS Relief Network',
+        'email': 'ngo@samsrelief.org',
         'role': 'NGO',
-        'phoneNumber': '+91 9123456789',
+        'phoneNumber': '+91 9876500112',
         'ngoDetails': {
           'darpanId': 'MH/2026/0048123',
-          'officeAddress': 'Deccan Gymkhana, Pune, MH 411004',
+          'officeAddress': 'Kothrud, Pune, MH 411038',
           'isVerified': true,
-          'description': 'Dedicated to transparent charity, relief, and community welfare.',
+          'description': 'SAMS Relief Network is dedicated to community welfare, disaster relief, and food distribution in Kothrud, Pune.',
         },
       };
     } else {
@@ -516,6 +539,58 @@ class _AuthScreenState extends State<AuthScreen> {
                                 prefixIcon: Icon(Icons.location_city),
                                 border: OutlineInputBorder(),
                               ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'NGO Verification Documents (PDF / Photos):',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                      side: BorderSide(color: _trustDeedPath != null ? Colors.green : Colors.blue.shade400),
+                                    ),
+                                    icon: Icon(_trustDeedPath != null ? Icons.check_circle : Icons.upload_file, size: 16, color: _trustDeedPath != null ? Colors.green : Colors.blue.shade800),
+                                    label: Text(
+                                      _trustDeedPath != null ? 'Trust Deed Attached' : 'Attach Trust Deed',
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                    onPressed: () => _pickDocument('trust'),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                      side: BorderSide(color: _exemption80GPath != null ? Colors.green : Colors.blue.shade400),
+                                    ),
+                                    icon: Icon(_exemption80GPath != null ? Icons.check_circle : Icons.upload_file, size: 16, color: _exemption80GPath != null ? Colors.green : Colors.blue.shade800),
+                                    label: Text(
+                                      _exemption80GPath != null ? '80G Attached' : 'Attach 80G Cert',
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                    onPressed: () => _pickDocument('80g'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 38),
+                                side: BorderSide(color: _certificate12APath != null ? Colors.green : Colors.blue.shade400),
+                              ),
+                              icon: Icon(_certificate12APath != null ? Icons.check_circle : Icons.upload_file, size: 16, color: _certificate12APath != null ? Colors.green : Colors.blue.shade800),
+                              label: Text(
+                                _certificate12APath != null ? '12A Certificate Attached' : 'Attach 12A Registration Certificate',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                              onPressed: () => _pickDocument('12a'),
                             ),
                             const SizedBox(height: 12),
                           ],

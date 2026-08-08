@@ -257,38 +257,71 @@ class _ImpactDashboardScreenState extends State<ImpactDashboardScreen> {
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 10),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: statusColor.withValues(alpha: 0.1),
-                                child: Icon(Icons.inventory, color: statusColor),
-                              ),
-                              title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Stack(
                                 children: [
-                                  Text(
-                                    isDonorRole ? '🏢 Handed to NGO: $counterpartyName' : '👤 Donor Name: $counterpartyName',
-                                    style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green.shade900, fontSize: 12),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: statusColor.withValues(alpha: 0.1),
+                                        child: Icon(Icons.inventory, color: statusColor),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(right: 75.0),
+                                              child: Text(
+                                                title,
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              isDonorRole ? '🏢 NGO: $counterpartyName' : '👤 Donor: $counterpartyName',
+                                              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green.shade900, fontSize: 12),
+                                            ),
+                                            Text('Category: $category • Weight: ${weight}kg', style: const TextStyle(fontSize: 11, color: Colors.black87)),
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              '🕒 $formattedStamp',
+                                              style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Text('Category: $category • Weight: ${weight}kg', style: const TextStyle(fontSize: 11)),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '🕒 $formattedStamp',
-                                    style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                                  // SMALLER STATUS BADGE POSITIONED IN TOP-RIGHT CORNER
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: statusColor, width: 0.8),
+                                      ),
+                                      child: Text(
+                                        status,
+                                        style: TextStyle(
+                                          color: statusColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 9.5,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
-                              ),
-                              trailing: Chip(
-                                backgroundColor: statusColor.withValues(alpha: 0.1),
-                                side: BorderSide(color: statusColor),
-                                label: Text(
-                                  status,
-                                  style: TextStyle(
-                                    color: statusColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
-                                ),
                               ),
                             ),
                           );

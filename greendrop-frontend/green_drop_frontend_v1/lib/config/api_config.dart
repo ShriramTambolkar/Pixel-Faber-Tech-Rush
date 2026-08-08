@@ -20,10 +20,10 @@ String get baseUrl {
     return 'http://127.0.0.1:5000/api';
   }
 
-  // On Physical Android Device or APK, connect via local Wi-Fi network IP
+  // On Physical Android Device or APK, fallback to live deployed Render URL
   if (customNetworkIp.isNotEmpty) {
     return 'http://$customNetworkIp:5000/api';
   }
 
-  return 'http://10.0.2.2:5000/api';
+  return 'https://greendrop-ggck.onrender.com/api';
 }
