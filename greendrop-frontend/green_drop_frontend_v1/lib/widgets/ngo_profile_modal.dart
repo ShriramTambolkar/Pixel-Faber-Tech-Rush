@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 
 class NgoProfileModal extends StatefulWidget {
@@ -219,6 +220,23 @@ class _NgoProfileModalState extends State<NgoProfileModal> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            const Text(
+              '🌐 Social Media & Official Channels:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildSocialChip('Instagram 📸', p['instagramUrl'] ?? 'https://instagram.com/smilefoundationindia', Colors.pink),
+                _buildSocialChip('YouTube ▶️', p['youtubeUrl'] ?? 'https://youtube.com/@smilefoundation', Colors.red),
+                _buildSocialChip('Facebook 👤', p['facebookUrl'] ?? 'https://facebook.com/smilefoundationindia', Colors.blue.shade800),
+                _buildSocialChip('LinkedIn 💼', p['linkedinUrl'] ?? 'https://linkedin.com/company/smile-foundation', Colors.blue.shade700),
+                _buildSocialChip('Website 🌐', p['websiteUrl'] ?? 'https://smilefoundationindia.org', Colors.teal),
+              ],
+            ),
             const SizedBox(height: 16),
 
             // INTERACTIVE RATING & REVIEW FORM
@@ -330,6 +348,42 @@ class _NgoProfileModalState extends State<NgoProfileModal> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSocialChip(String label, String url, Color color) {
+    return ActionChip(
+      avatar: CircleAvatar(
+        backgroundColor: color,
+        radius: 10,
+        child: const Icon(Icons.link, size: 10, color: Colors.white),
+      ),
+      label: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+      backgroundColor: color.withValues(alpha: 0.1),
+      side: BorderSide(color: color.withValues(alpha: 0.3)),
+      onPressed: () async {
+        final messenger = ScaffoldMessenger.of(context);
+        try {
+          final uri = Uri.parse(url);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } else {
+            messenger.showSnackBar(
+              SnackBar(
+                backgroundColor: color,
+                content: Text('🌐 Opening official link: $url'),
+              ),
+            );
+          }
+        } catch (_) {
+          messenger.showSnackBar(
+            SnackBar(
+              backgroundColor: color,
+              content: Text('🌐 Opening link: $url'),
+            ),
+          );
+        }
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../widgets/ngo_profile_modal.dart';
+import '../../widgets/shimmer_placeholder.dart';
 
 class NgoDirectoryScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -82,7 +83,14 @@ class _NgoDirectoryScreenState extends State<NgoDirectoryScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: 4,
+                    itemBuilder: (c, i) => const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: ShimmerPlaceholder(height: 80, borderRadius: 12),
+                    ),
+                  )
                 : filtered.isEmpty
                     ? const Center(child: Text('No verified NGOs found.'))
                     : ListView.builder(
@@ -96,37 +104,36 @@ class _NgoDirectoryScreenState extends State<NgoDirectoryScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
+                              onTap: () {
+                                NgoProfileModal.show(
+                                  context,
+                                  ngo['_id'],
+                                  ngo['name'] ?? 'NGO',
+                                  currentUser: widget.user,
+                                );
+                              },
                               leading: CircleAvatar(
                                 backgroundColor: Colors.green.shade800,
                                 child: const Icon(Icons.corporate_fare, color: Colors.white),
                               ),
                               title: Row(
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      ngo['name'] ?? 'NGO',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
+                                  Text(
+                                    ngo['name'] ?? 'NGO',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                   ),
+                                  const SizedBox(width: 6),
+                                  const Text('ℹ️', style: TextStyle(fontSize: 16)),
+                                  const SizedBox(width: 4),
                                   Icon(Icons.verified, color: Colors.green.shade800, size: 18),
                                 ],
                               ),
-                              subtitle: Text(
-                                '📍 Headquarters: $address\n✉️ Email: ${ngo['email']}',
-                              ),
-                              trailing: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green.shade800,
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  '📍 Headquarters: $address\n✉️ Email: ${ngo['email']}',
+                                  style: const TextStyle(height: 1.3),
                                 ),
-                                icon: const Icon(Icons.info, size: 16, color: Colors.white),
-                                label: const Text('View Profile', style: TextStyle(color: Colors.white, fontSize: 12)),
-                                onPressed: () {
-                                  NgoProfileModal.show(
-                                    context,
-                                    ngo['_id'],
-                                    ngo['name'] ?? 'NGO',
-                                  );
-                                },
                               ),
                             ),
                           );

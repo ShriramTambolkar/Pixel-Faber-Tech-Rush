@@ -78,6 +78,7 @@ class _RecycleTierScreenState extends State<RecycleTierScreen> {
     return Scaffold(
       body: Column(
         children: [
+          const AnimatedRecycleBanner(),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
@@ -159,6 +160,62 @@ class _RecycleTierScreenState extends State<RecycleTierScreen> {
                           );
                         },
                       ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AnimatedRecycleBanner extends StatefulWidget {
+  const AnimatedRecycleBanner({super.key});
+
+  @override
+  State<AnimatedRecycleBanner> createState() => _AnimatedRecycleBannerState();
+}
+
+class _AnimatedRecycleBannerState extends State<AnimatedRecycleBanner> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade900,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+      ),
+      child: Column(
+        children: [
+          RotationTransition(
+            turns: _ctrl,
+            child: const Icon(Icons.recycling, size: 52, color: Colors.tealAccent),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Feature under development, connecting donors and organisers to waste collection vendors, ensuring zero waste',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),

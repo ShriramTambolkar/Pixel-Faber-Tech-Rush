@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 
 class EditNgoProfileScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class _EditNgoProfileScreenState extends State<EditNgoProfileScreen> {
   final _linkedinCtrl = TextEditingController();
   final _instagramCtrl = TextEditingController();
   final _facebookCtrl = TextEditingController();
+  final _youtubeCtrl = TextEditingController();
   final _photoUrlCtrl = TextEditingController();
   bool _isSaving = false;
 
@@ -33,6 +36,7 @@ class _EditNgoProfileScreenState extends State<EditNgoProfileScreen> {
       _linkedinCtrl.text = ngo['linkedinUrl'] ?? 'https://linkedin.com/company/smile-foundation';
       _instagramCtrl.text = ngo['instagramUrl'] ?? 'https://instagram.com/smilefoundationindia';
       _facebookCtrl.text = ngo['facebookUrl'] ?? 'https://facebook.com/smilefoundationindia';
+      _youtubeCtrl.text = ngo['youtubeUrl'] ?? 'https://youtube.com/@smilefoundation';
     }
   }
 
@@ -48,6 +52,7 @@ class _EditNgoProfileScreenState extends State<EditNgoProfileScreen> {
         'linkedinUrl': _linkedinCtrl.text,
         'instagramUrl': _instagramCtrl.text,
         'facebookUrl': _facebookCtrl.text,
+        'youtubeUrl': _youtubeCtrl.text,
         'profilePhotoUrl': _photoUrlCtrl.text,
       });
 
@@ -100,8 +105,12 @@ class _EditNgoProfileScreenState extends State<EditNgoProfileScreen> {
                   CircleAvatar(
                     radius: 46,
                     backgroundColor: Colors.green.shade100,
-                    backgroundImage: photoUrl.startsWith('http') ? NetworkImage(photoUrl) : null,
-                    child: !photoUrl.startsWith('http')
+                    backgroundImage: photoUrl.startsWith('data:image')
+                        ? MemoryImage(base64Decode(photoUrl.split(',').last))
+                        : photoUrl.startsWith('http')
+                            ? NetworkImage(photoUrl) as ImageProvider
+                            : null,
+                    child: (!photoUrl.startsWith('http') && !photoUrl.startsWith('data:image'))
                         ? const Icon(Icons.corporate_fare, size: 46, color: Colors.green)
                         : null,
                   ),
@@ -120,11 +129,39 @@ class _EditNgoProfileScreenState extends State<EditNgoProfileScreen> {
             TextField(
               controller: _photoUrlCtrl,
               decoration: const InputDecoration(
-                labelText: 'NGO Logo / Profile Photo URL',
+                labelText: 'NGO Logo / Profile Photo URL (or pick from device)',
                 prefixIcon: Icon(Icons.photo_camera),
                 border: OutlineInputBorder(),
               ),
               onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 42),
+                side: BorderSide(color: Colors.green.shade800),
+              ),
+              icon: const Icon(Icons.photo_library, color: Colors.green),
+              label: const Text('🖼️ Select Logo Image from Device Gallery', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              onPressed: () async {
+                try {
+                  final picker = ImagePicker();
+                  final XFile? img = await picker.pickImage(source: ImageSource.gallery);
+                  if (img != null) {
+                    final bytes = await img.readAsBytes();
+                    setState(() {
+                      _photoUrlCtrl.text = 'data:image/png;base64,${base64Encode(bytes)}';
+                    });
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Colors.green,
+                        content: Text('✅ NGO logo loaded from device gallery!'),
+                      ),
+                    );
+                  }
+                } catch (_) {}
+              },
             ),
             const SizedBox(height: 12),
             TextField(
@@ -186,6 +223,15 @@ class _EditNgoProfileScreenState extends State<EditNgoProfileScreen> {
               decoration: const InputDecoration(
                 labelText: 'Facebook Page URL',
                 prefixIcon: Icon(Icons.facebook),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _youtubeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'YouTube Channel / Video URL',
+                prefixIcon: Icon(Icons.play_circle_fill),
                 border: OutlineInputBorder(),
               ),
             ),

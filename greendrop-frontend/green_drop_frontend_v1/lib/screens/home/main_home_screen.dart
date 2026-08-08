@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../widgets/greendrop_native_logo.dart';
 import '../auth/auth_screen.dart';
+
 import '../donations/browse_donations_feed.dart';
 import '../donations/create_donation_screen.dart';
 import '../events/ngo_events_feed.dart';
@@ -17,42 +19,99 @@ import '../admin/admin_dashboard_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final Map<String, dynamic> user;
-  const MainHomeScreen({super.key, required this.user});
+  final int initialIndex;
+  const MainHomeScreen({super.key, required this.user, this.initialIndex = 0});
 
   @override
   State<MainHomeScreen> createState() => _MainHomeScreenState();
 }
 
 class _MainHomeScreenState extends State<MainHomeScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+  final Map<int, Widget> _loadedScreens = {};
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _loadedScreens[_currentIndex] = RepaintBoundary(
+      child: _getOrConstructScreen(_currentIndex),
+    );
+  }
+
+  Widget _getOrConstructScreen(int index) {
+    if (_loadedScreens.containsKey(index)) {
+      return _loadedScreens[index]!;
+    }
+
+    final role = widget.user['role'] ?? 'DONOR';
+    final isNgo = role == 'NGO';
+    final isAdmin = role == 'ADMIN';
+
+    late Widget screen;
+    switch (index) {
+      case 0:
+        screen = BrowseDonationsFeed(user: widget.user);
+        break;
+      case 1:
+        screen = NgoEventsFeed(user: widget.user);
+        break;
+      case 2:
+        screen = DonationsMapScreen(user: widget.user);
+        break;
+      case 3:
+        screen = ImpactDashboardScreen(user: widget.user);
+        break;
+      case 4:
+        screen = NgoRequirementsScreen(user: widget.user);
+        break;
+      case 5:
+        screen = NgoDirectoryScreen(user: widget.user);
+        break;
+      case 6:
+        screen = NgoAchievementsScreen(user: widget.user);
+        break;
+      case 7:
+        screen = RecycleTierScreen(user: widget.user);
+        break;
+      case 8:
+        screen = isNgo
+            ? DisasterModeManagerScreen(user: widget.user)
+            : BrowseDonationsFeed(user: widget.user);
+        break;
+      case 9:
+        screen = const ChatbotScreen();
+        break;
+      case 10:
+        screen = isAdmin ? const AdminDashboardScreen() : BrowseDonationsFeed(user: widget.user);
+        break;
+      default:
+        screen = BrowseDonationsFeed(user: widget.user);
+    }
+
+    final wrappedScreen = RepaintBoundary(child: screen);
+    _loadedScreens[index] = wrappedScreen;
+    return wrappedScreen;
+  }
 
   @override
   Widget build(BuildContext context) {
     final role = widget.user['role'] ?? 'DONOR';
     final isNgo = role == 'NGO';
     final isDonor = role == 'DONOR';
+    final isAdmin = role == 'ADMIN';
     final photoUrl = widget.user['profilePhotoUrl'] ?? '';
-
-    final screens = [
-      BrowseDonationsFeed(user: widget.user),
-      ImpactDashboardScreen(user: widget.user),
-      DonationsMapScreen(user: widget.user),
-      NgoRequirementsScreen(user: widget.user),
-      NgoDirectoryScreen(user: widget.user),
-      NgoAchievementsScreen(user: widget.user),
-      RecycleTierScreen(user: widget.user),
-      NgoEventsFeed(user: widget.user),
-      if (isDonor) CreateDonationScreen(user: widget.user),
-      if (isNgo) DisasterModeManagerScreen(user: widget.user),
-      const ChatbotScreen(),
-      if (role == 'ADMIN') const AdminDashboardScreen(),
-    ];
 
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
-            const Text('🌱 GreenDrop', style: TextStyle(fontWeight: FontWeight.bold)),
+            const GreenDropNativeLogo(size: 34, animate: false),
+            const SizedBox(width: 8),
+            const Text('GreenDrop', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+
+
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -67,10 +126,13 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             )
           ],
         ),
+
         backgroundColor: Colors.green.shade800,
         foregroundColor: Colors.white,
         elevation: 2,
       ),
+
+      // SIDE DRAWER: FULL MENU
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -129,28 +191,31 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   );
                 },
               ),
-            ListTile(
-              leading: const Icon(Icons.eco, color: Colors.green),
-              title: const Text('Environmental Impact Dashboard'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() => _currentIndex = 1);
+            SwitchListTile(
+              secondary: Icon(
+                _notificationsEnabled ? Icons.notifications_active : Icons.notifications_off,
+                color: _notificationsEnabled ? Colors.green : Colors.grey,
+              ),
+              title: const Text('In-App Notifications'),
+              subtitle: Text(_notificationsEnabled ? 'Notifications Enabled' : 'Notifications Muted'),
+              value: _notificationsEnabled,
+              onChanged: (val) {
+                setState(() => _notificationsEnabled = val);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: val ? Colors.green : Colors.grey.shade800,
+                    content: Text(val ? '🔔 In-App Notifications Enabled!' : '🔕 In-App Notifications Muted.'),
+                  ),
+                );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.map, color: Colors.green),
-              title: const Text('Interactive Map & Route Planner'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() => _currentIndex = 2);
-              },
-            ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.fact_check, color: Colors.green),
-              title: const Text('NGO Structured Demands Board'),
+              title: const Text('📋 NGO Structured Demands Board'),
               onTap: () {
                 Navigator.pop(context);
-                setState(() => _currentIndex = 3);
+                setState(() => _currentIndex = 4);
               },
             ),
             ListTile(
@@ -158,7 +223,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               title: const Text('Verified NGO Search Directory'),
               onTap: () {
                 Navigator.pop(context);
-                setState(() => _currentIndex = 4);
+                setState(() => _currentIndex = 5);
               },
             ),
             ListTile(
@@ -166,7 +231,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               title: const Text('NGO Impact & Achievements Showcase'),
               onTap: () {
                 Navigator.pop(context);
-                setState(() => _currentIndex = 5);
+                setState(() => _currentIndex = 6);
               },
             ),
             ListTile(
@@ -174,16 +239,34 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               title: const Text('Zero-Waste Recycle / Upcycle Tier'),
               onTap: () {
                 Navigator.pop(context);
-                setState(() => _currentIndex = 6);
+                setState(() => _currentIndex = 7);
               },
             ),
-            if ((widget.user['warningCount'] ?? 0) > 0)
+            if (isNgo)
               ListTile(
-                leading: const Icon(Icons.warning, color: Colors.orange),
-                title: Text('Account Warnings: ${widget.user['warningCount']}'),
-                subtitle: Text(
-                  'Last reason: ${widget.user['lastWarningReason'] ?? ''}',
-                ),
+                leading: const Icon(Icons.warning_amber, color: Colors.red),
+                title: const Text('Disaster Relief Broadcast Manager'),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _currentIndex = 8);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.smart_toy, color: Colors.green),
+              title: const Text('AI HelpBot'),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() => _currentIndex = 9);
+              },
+            ),
+            if (isAdmin)
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings, color: Colors.purple),
+                title: const Text('Admin Panel'),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _currentIndex = 10);
+                },
               ),
             const Divider(),
             ListTile(
@@ -197,64 +280,72 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           ],
         ),
       ),
-      body: screens[_currentIndex],
+
+
+      body: IndexedStack(
+        index: _currentIndex < 11 ? _currentIndex : 0,
+        children: List.generate(11, (i) {
+          if (_currentIndex == i || _loadedScreens.containsKey(i)) {
+            return _getOrConstructScreen(i);
+          }
+          return const SizedBox.shrink();
+        }),
+      ),
+
+
+      // FLOATING ACTION BUTTON FOR DONORS: STRICTLY ON MAIN HOME DASHBOARD ONLY (INDEX 0)
+      floatingActionButton: (isDonor && _currentIndex == 0)
+          ? FloatingActionButton.extended(
+              backgroundColor: Colors.green.shade800,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('Post Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              onPressed: () async {
+                final newItem = await Navigator.push<Map<String, dynamic>>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (c) => CreateDonationScreen(user: widget.user),
+                  ),
+                );
+                if (newItem != null) {
+                  setState(() {
+                    _currentIndex = 0;
+                    _loadedScreens.remove(0);
+                    _loadedScreens.remove(3);
+                  });
+                }
+              },
+            )
+          : null,
+
+
+      // 4 BOTTOM NAVIGATION ICONS: HOME, CAMPAIGNS, MAP, IMPACT
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+        selectedIndex: _currentIndex > 3 ? 0 : _currentIndex,
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.inventory_2),
-            label: 'Donations',
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home, color: Colors.green),
+            label: 'Home Feed',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.eco),
-            label: 'Impact',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.map),
-            label: 'Map View',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.fact_check),
-            label: 'Demands',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.search),
-            label: 'NGO Search',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.emoji_events),
-            label: 'Showcase',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.recycling),
-            label: 'Zero-Waste',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.campaign),
+          NavigationDestination(
+            icon: Icon(Icons.campaign_outlined),
+            selectedIcon: Icon(Icons.campaign, color: Colors.green),
             label: 'Campaigns',
           ),
-          if (isDonor)
-            const NavigationDestination(
-              icon: Icon(Icons.add_circle),
-              label: 'Post Item',
-            ),
-          if (isNgo)
-            const NavigationDestination(
-              icon: Icon(Icons.warning_amber),
-              label: 'Disaster Mode',
-            ),
-          const NavigationDestination(
-            icon: Icon(Icons.smart_toy),
-            label: 'AI HelpBot',
+          NavigationDestination(
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(Icons.map, color: Colors.green),
+            label: 'Map & Routes',
           ),
-          if (role == 'ADMIN')
-            const NavigationDestination(
-              icon: Icon(Icons.admin_panel_settings),
-              label: 'Admin Panel',
-            ),
+          NavigationDestination(
+            icon: Icon(Icons.eco_outlined),
+            selectedIcon: Icon(Icons.eco, color: Colors.green),
+            label: 'Impact Stats',
+          ),
         ],
       ),
     );
   }
 }
+

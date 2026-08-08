@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
@@ -20,40 +21,74 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _ctrl = TextEditingController();
+  final ScrollController _scrollCtrl = ScrollController();
   List<dynamic> _messages = [];
   bool _isLoading = true;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _fetch();
+    // Auto-refresh chat messages every 3 seconds for real-time messaging experience!
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) => _fetch());
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    _scrollCtrl.dispose();
+    _ctrl.dispose();
+    super.dispose();
   }
 
   Future<void> _fetch() async {
     try {
       final res = await ApiService.get('/chat/${widget.donationId}');
       if (res.statusCode == 200) {
-        setState(() {
-          _messages = jsonDecode(res.body)['data'];
-          _isLoading = false;
-        });
+        final List data = jsonDecode(res.body)['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _messages = data;
+            _isLoading = false;
+          });
+        }
       }
     } catch (_) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _send() async {
-    if (_ctrl.text.trim().isEmpty) return;
-    final text = _ctrl.text;
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) return;
     _ctrl.clear();
-    await ApiService.post('/chat', {
-      'donationId': widget.donationId,
-      'senderId': widget.currentUserId,
-      'recipientId': widget.recipientId,
-      'text': text,
-    });
-    _fetch();
+
+    try {
+      final res = await ApiService.post('/chat', {
+        'donationId': widget.donationId,
+        'senderId': widget.currentUserId,
+        'receiverId': widget.recipientId,
+        'recipientId': widget.recipientId,
+        'text': text,
+      });
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        await _fetch();
+        if (_scrollCtrl.hasClients) {
+          _scrollCtrl.animateTo(
+            _scrollCtrl.position.maxScrollExtent + 60,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send message: $e')),
+      );
+    }
   }
 
   @override
@@ -61,6 +96,8 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('💬 Direct 1-on-1 Chat'),
+        backgroundColor: Colors.green.shade800,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetch),
         ],
@@ -72,7 +109,7 @@ class _ChatScreenState extends State<ChatScreen> {
             color: Colors.green.shade50,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: const Text(
-              '🔒 Unlocked Direct Chat for coordinate pickup details & timing.',
+              '🔒 Direct Chat Active: Coordinate pickup timing, location, and item details safely.',
               style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold),
             ),
           ),
@@ -88,6 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       )
                     : ListView.builder(
+                        controller: _scrollCtrl,
                         padding: const EdgeInsets.all(12),
                         itemCount: _messages.length,
                         itemBuilder: (c, i) {
@@ -98,7 +136,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 isMe ? Alignment.centerRight : Alignment.centerLeft,
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               constraints: BoxConstraints(
                                 maxWidth: MediaQuery.of(context).size.width * 0.75,
                               ),
@@ -106,11 +144,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                 color: isMe
                                     ? Colors.green.shade700
                                     : Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: Text(
                                 msg['text'] ?? '',
                                 style: TextStyle(
+                                  fontSize: 14,
                                   color: isMe ? Colors.white : Colors.black87,
                                 ),
                               ),
@@ -120,7 +159,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
                 Expanded(
@@ -129,6 +168,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     decoration: const InputDecoration(
                       hintText: 'Type your message...',
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                     onSubmitted: (_) => _send(),
                   ),

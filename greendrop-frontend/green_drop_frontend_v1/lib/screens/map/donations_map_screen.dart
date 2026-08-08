@@ -16,6 +16,27 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
   List<dynamic> _disasters = [];
   bool _isLoading = true;
 
+  final List<Map<String, String>> _ngoOfficeLocations = [
+    {
+      'name': 'Smile Foundation Pune HQ',
+      'address': 'Deccan Gymkhana, FC Road, Pune, MH 411004',
+      'phone': '+91 9123456789',
+      'type': 'Verified NGO Office & Drop-off Hub',
+    },
+    {
+      'name': 'Goonj Urban Relief Hub',
+      'address': 'Kothrud Industrial Area, Pune, MH 411038',
+      'phone': '+91 9876543210',
+      'type': 'Clothing & Appliance Collection Center',
+    },
+    {
+      'name': 'Deepastambha Care Foundation',
+      'address': 'Viman Nagar, Nagar Road, Pune, MH 411014',
+      'phone': '+91 9988776655',
+      'type': 'Food & Ration Distribution HQ',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -56,9 +77,12 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final availableDonations = _donations.where((d) => d['status'] == 'AVAILABLE').toList();
     final role = widget.user['role'] ?? 'DONOR';
     final isNgo = role == 'NGO';
+
+    // Role-specific map items filtering
+    // NGO: Accepted pickups by donors
+    final ngoAcceptedPickups = _donations.where((d) => d['status'] == 'ACCEPTED' || d['status'] == 'AVAILABLE').toList();
 
     return Scaffold(
       body: Column(
@@ -67,23 +91,25 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             color: Colors.green.shade50,
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.map, color: Colors.green),
-                SizedBox(width: 10),
+                const Icon(Icons.map, color: Colors.green),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '🗺️ Map View & Geofencing: View donations, disaster hubs, and optimize batch pickup routes.',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+                    isNgo
+                        ? '🗺️ NGO Pickup Map: Showing donors who accepted collection requests.'
+                        : '🗺️ Donor Map: Showing nearby verified NGO offices & emergency relief hubs.',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
                   ),
                 ),
               ],
             ),
           ),
 
-          // SIMULATED INTERACTIVE MAP VIEW CONTAINER
+          // INTERACTIVE MAP CONTAINER
           Container(
-            height: 220,
+            height: 200,
             width: double.infinity,
             margin: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -101,7 +127,7 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: Colors.black.withValues(alpha: 0.3),
+                    color: Colors.black.withValues(alpha: 0.35),
                   ),
                 ),
                 Center(
@@ -111,7 +137,9 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
                       const Icon(Icons.location_on, color: Colors.red, size: 40),
                       const SizedBox(height: 4),
                       Text(
-                        '📍 Map View Active: ${availableDonations.length} Available Donations nearby',
+                        isNgo
+                            ? '📍 ${ngoAcceptedPickups.length} Accepted Donor Pickups Nearby'
+                            : '📍 ${_ngoOfficeLocations.length} Verified NGO Offices Nearby',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -133,7 +161,7 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
                         ),
                         icon: const Icon(Icons.navigation, color: Colors.white, size: 16),
                         label: const Text(
-                          'Open Live Google Maps View',
+                          'Open Full Live Google Maps',
                           style: TextStyle(color: Colors.white, fontSize: 12),
                         ),
                         onPressed: () => _launchMap('Pune, Maharashtra'),
@@ -145,7 +173,7 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
             ),
           ),
 
-          // BATCH ROUTE OPTIMIZER FOR NGOs
+          // BATCH ROUTE PLANNER FOR NGOS
           if (isNgo) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -155,7 +183,7 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.alt_route, color: Colors.white, size: 30),
+                      const Icon(Icons.alt_route, color: Colors.white, size: 28),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -166,7 +194,7 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              'Optimize pickup route for ${availableDonations.length} nearby donations in 1 trip',
+                              'Optimize pickup route for ${ngoAcceptedPickups.length} donor locations',
                               style: const TextStyle(color: Colors.white70, fontSize: 11),
                             ),
                           ],
@@ -174,7 +202,7 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                        onPressed: () => _launchBatchRoute(availableDonations),
+                        onPressed: () => _launchBatchRoute(ngoAcceptedPickups),
                         child: Text(
                           'Plan Route',
                           style: TextStyle(color: Colors.green.shade900, fontWeight: FontWeight.bold),
@@ -185,17 +213,19 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
           ],
 
-          // LIST OF NEARBY LOCATIONS
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14.0),
+          // ROLE-SPECIFIC PINS LIST
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14.0),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '📍 Geofenced Pickup Locations:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                isNgo
+                    ? '📦 Donors Who Accepted Collection Requests:'
+                    : '🏢 Nearby NGO Office Locations:',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -204,28 +234,52 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : availableDonations.isEmpty
-                    ? const Center(child: Text('No active donation pins found nearby.'))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: availableDonations.length,
-                        itemBuilder: (c, i) {
-                          final item = availableDonations[i];
-                          final addr = item['address']?['formattedAddress'] ?? 'Deccan Gymkhana, Pune';
+                : isNgo
+                    ? (ngoAcceptedPickups.isEmpty
+                        ? const Center(child: Text('No accepted donor collection requests found.'))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            itemCount: ngoAcceptedPickups.length,
+                            itemBuilder: (c, i) {
+                              final item = ngoAcceptedPickups[i];
+                              final addr = item['address']?['formattedAddress'] ?? 'Deccan Gymkhana, Pune';
 
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: Colors.green.shade100,
+                                    child: const Icon(Icons.person_pin_circle, color: Colors.green),
+                                  ),
+                                  title: Text(item['title'] ?? 'Donation', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text('👤 Donor Name: ${item['donorName']}\n📍 Pickup Location: $addr'),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.directions, color: Colors.green),
+                                    onPressed: () => _launchMap(addr),
+                                    tooltip: 'Navigate to Donor Address',
+                                  ),
+                                ),
+                              );
+                            },
+                          ))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        itemCount: _ngoOfficeLocations.length,
+                        itemBuilder: (c, i) {
+                          final ngo = _ngoOfficeLocations[i];
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
+                            margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: Colors.red.shade100,
-                                child: const Icon(Icons.location_on, color: Colors.red),
+                                backgroundColor: Colors.blue.shade100,
+                                child: Icon(Icons.business, color: Colors.blue.shade800),
                               ),
-                              title: Text(item['title'] ?? 'Donation Item', style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('📍 Address: $addr\n👤 Donor: ${item['donorName']}'),
+                              title: Text(ngo['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('📍 Office: ${ngo['address']}\n📞 Contact: ${ngo['phone']}'),
                               trailing: IconButton(
-                                icon: const Icon(Icons.directions, color: Colors.green),
-                                onPressed: () => _launchMap(addr),
-                                tooltip: 'Navigate to Pickup Address',
+                                icon: const Icon(Icons.directions, color: Colors.blue),
+                                onPressed: () => _launchMap(ngo['address']!),
+                                tooltip: 'Navigate to NGO Office',
                               ),
                             ),
                           );

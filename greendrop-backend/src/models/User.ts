@@ -32,6 +32,7 @@ export interface IUser extends Document {
     linkedinUrl?: string;
     instagramUrl?: string;
     facebookUrl?: string;
+    youtubeUrl?: string;
     officeAddress?: string;
     isDisasterMode?: boolean;
     disasterType?: string;
@@ -75,6 +76,7 @@ const userSchema = new Schema<IUser>(
       linkedinUrl: { type: String, default: 'https://linkedin.com/company/smile-foundation' },
       instagramUrl: { type: String, default: 'https://instagram.com/smilefoundationindia' },
       facebookUrl: { type: String, default: 'https://facebook.com/smilefoundationindia' },
+      youtubeUrl: { type: String, default: 'https://youtube.com/@smilefoundation' },
       officeAddress: { type: String, default: 'Deccan Gymkhana, Pune, MH 411004' },
       isDisasterMode: { type: Boolean, default: false },
       disasterType: { type: String, default: 'Flood Relief Emergency' },

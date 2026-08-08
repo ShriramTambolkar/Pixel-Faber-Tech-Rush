@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
+import '../../widgets/ngo_profile_modal.dart';
+import '../../widgets/shimmer_placeholder.dart';
 
 class NgoEventsFeed extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -14,6 +17,7 @@ class NgoEventsFeed extends StatefulWidget {
 class _NgoEventsFeedState extends State<NgoEventsFeed> {
   List<dynamic> _events = [];
   String _searchQuery = '';
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -28,6 +32,7 @@ class _NgoEventsFeedState extends State<NgoEventsFeed> {
         setState(() => _events = jsonDecode(res.body)['data']);
       }
     } catch (_) {}
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _openMap(String address) async {
@@ -145,9 +150,35 @@ class _NgoEventsFeedState extends State<NgoEventsFeed> {
               TextField(
                 controller: photoCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Cover Photo Link',
+                  labelText: 'Cover Photo Link (or pick from device below)',
                   border: OutlineInputBorder(),
                 ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 42),
+                  side: BorderSide(color: Colors.green.shade800),
+                ),
+                icon: const Icon(Icons.photo_library, color: Colors.green),
+                label: const Text('🖼️ Pick Cover Image from Device Gallery', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  try {
+                    final picker = ImagePicker();
+                    final XFile? img = await picker.pickImage(source: ImageSource.gallery);
+                    if (img != null) {
+                      final bytes = await img.readAsBytes();
+                      photoCtrl.text = 'data:image/png;base64,${base64Encode(bytes)}';
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          backgroundColor: Colors.green,
+                          content: Text('✅ Cover photo loaded from device gallery!'),
+                        ),
+                      );
+                    }
+                  } catch (_) {}
+                },
               ),
             ],
           ),
@@ -243,7 +274,16 @@ class _NgoEventsFeedState extends State<NgoEventsFeed> {
             ),
           ),
           Expanded(
-            child: filtered.isEmpty
+            child: _isLoading
+                ? ListView.builder(
+                    itemCount: 3,
+                    padding: const EdgeInsets.all(12),
+                    itemBuilder: (c, i) => const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: ShimmerPlaceholder(height: 140, borderRadius: 16),
+                    ),
+                  )
+                : filtered.isEmpty
                 ? const Center(child: Text('No active donation campaigns found.'))
                 : ListView.builder(
                     itemCount: filtered.length,
@@ -296,13 +336,29 @@ class _NgoEventsFeedState extends State<NgoEventsFeed> {
                                         )
                                     ],
                                   ),
-                                  Text(
-                                    '🏢 By: ${ev['ngoName']}',
-                                    style: TextStyle(
-                                      color: Colors.green.shade800,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                   Row(
+                                     children: [
+                                       Text(
+                                         '🏢 By: ${ev['ngoName']}',
+                                         style: TextStyle(
+                                           color: Colors.green.shade800,
+                                           fontWeight: FontWeight.bold,
+                                         ),
+                                       ),
+                                       IconButton(
+                                         icon: const Icon(Icons.info_outline, color: Colors.green, size: 18),
+                                         tooltip: 'View NGO Profile',
+                                         onPressed: () {
+                                           NgoProfileModal.show(
+                                             context,
+                                             ev['ngoId'] ?? 'demo_ngo_001',
+                                             ev['ngoName'] ?? 'NGO',
+                                             currentUser: widget.user,
+                                           );
+                                         },
+                                       ),
+                                     ],
+                                   ),
                                   const SizedBox(height: 6),
 
                                   // COMPULSORY DATE, TIME, DAYS BADGES

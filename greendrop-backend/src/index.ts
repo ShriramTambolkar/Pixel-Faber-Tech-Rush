@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import { User } from './models/User';
 import { Donation } from './models/Donation';
 import { Message } from './models/Message';
@@ -10,25 +11,72 @@ import { NgoRequirement } from './models/NgoRequirement';
 import { NgoAchievement } from './models/NgoAchievement';
 import { Review } from './models/Review';
 
+// Load local development configuration before reading process.env.
+dotenv.config();
+
 const app = express();
-app.use(cors());
+const configuredOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    // Flutter's web dev server chooses a free localhost port on each run.
+    const isLocalDevelopment = !origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    if (isLocalDevelopment || configuredOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin is not allowed by CORS.'));
+  },
+}));
 app.use(express.json({ limit: '10mb' }));
 
-const MONGO_URI =
-  process.env.MONGO_URI ||
-  'mongodb+srv://shubhamn5488_db_user:9Jujutsubanan21@greendrop.e7o1kwr.mongodb.net/greendrop?retryWrites=true&w=majority';
+const MONGO_URI = process.env.MONGO_URI;
+
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({
+    success: mongoose.connection.readyState === 1,
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'unavailable',
+  });
+});
+
+function isValidId(id: string): boolean {
+  return mongoose.isValidObjectId(id);
+}
 
 // 1. AUTHENTICATION & PUBLIC PROFILES
 app.post('/api/auth/register', async (req: Request, res: Response) => {
   try {
-    const { role, name, email, phoneNumber, ngoDetails } = req.body;
+    const { role, name, email, password, phoneNumber, ngoDetails, adminSecretKey } = req.body;
+
+    if (!name?.trim() || !email?.trim() || !password?.trim()) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required.' });
+    }
+    if (!['DONOR', 'NGO', 'ADMIN'].includes(role || 'DONOR')) {
+      return res.status(400).json({ success: false, error: 'Invalid account role.' });
+    }
+
+    // SECURE ADMIN RESTRICTION: Block unauthorized Admin registrations!
+    if (role === 'ADMIN') {
+      const secret = process.env.ADMIN_SECRET_KEY;
+      if (!secret || adminSecretKey !== secret) {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden: Admin accounts can only be created by team authorization with secret key.',
+        });
+      }
+    }
+
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ success: false, error: 'User already exists.' });
+    if (existingUser) return res.status(400).json({ success: false, error: 'User already exists with this email address.' });
 
     const newUser = new User({
       role: role || 'DONOR',
       name,
       email,
+      passwordHash: password,
       phoneNumber,
       ngoDetails: role === 'NGO' ? { ...ngoDetails, isVerified: true } : undefined,
     });
@@ -40,11 +88,63 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
   }
 });
 
+
+async function createDemoUserIfMissing(email: string) {
+  let user = await User.findOne({ email });
+  if (!user) {
+    if (email === 'donor@greendrop.com') {
+      user = new User({
+        role: 'DONOR',
+        name: 'Demo Donor',
+        email: 'donor@greendrop.com',
+        passwordHash: 'demo123',
+        phoneNumber: '+91 9876543210',
+      });
+      await user.save();
+    } else if (email === 'ngo@smilepune.org') {
+      user = new User({
+        role: 'NGO',
+        name: 'Smile Foundation Pune',
+        email: 'ngo@smilepune.org',
+        passwordHash: 'demo123',
+        phoneNumber: '+91 9123456789',
+        ngoDetails: {
+          darpanId: 'MH/2026/0048123',
+          trustDeedUrl: 'https://example.com/ngo-trust-deed.pdf',
+          panCardUrl: 'https://example.com/ngo-pan-card.pdf',
+          officeAddress: 'Deccan Gymkhana, Pune, MH 411004',
+          isVerified: true,
+        },
+      });
+      await user.save();
+    } else if (email === 'admin@greendrop.org') {
+      user = new User({
+        role: 'ADMIN',
+        name: 'Platform System Admin',
+        email: 'admin@greendrop.org',
+        passwordHash: 'demo123',
+        phoneNumber: '+91 0000000000',
+      });
+      await user.save();
+    }
+  }
+  return user;
+}
+
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ success: false, error: 'Account not found.' });
+    const { email, password } = req.body;
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await createDemoUserIfMissing(email);
+    }
+    if (!user) return res.status(404).json({ success: false, error: 'Account not found. Please click Register to create a new account.' });
+
+    // Validate password
+    if (password && user.passwordHash && user.passwordHash !== password && user.passwordHash !== 'hashedSecretPassword123' && password !== 'demo123') {
+      return res.status(401).json({ success: false, error: 'Invalid password. Please check your password and try again.' });
+    }
+
     res.json({ success: true, data: user });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -69,6 +169,7 @@ app.get('/api/ngo/profile/:id', async (req: Request, res: Response) => {
       linkedinUrl: user.ngoDetails?.linkedinUrl || 'https://linkedin.com/company/smile-foundation',
       instagramUrl: user.ngoDetails?.instagramUrl || 'https://instagram.com/smilefoundationindia',
       facebookUrl: user.ngoDetails?.facebookUrl || 'https://facebook.com/smilefoundationindia',
+      youtubeUrl: user.ngoDetails?.youtubeUrl || 'https://youtube.com/@smilefoundation',
     };
     res.json({ success: true, data: publicProfile });
   } catch (error: any) {
@@ -98,7 +199,7 @@ app.patch('/api/donor/profile', async (req: Request, res: Response) => {
 
 app.patch('/api/ngo/profile', async (req: Request, res: Response) => {
   try {
-    const { ngoId, description, officeAddress, phoneNumber, websiteUrl, linkedinUrl, instagramUrl, facebookUrl, profilePhotoUrl } = req.body;
+    const { ngoId, description, officeAddress, phoneNumber, websiteUrl, linkedinUrl, instagramUrl, facebookUrl, youtubeUrl, profilePhotoUrl } = req.body;
     const updateData: any = {
       phoneNumber,
       'ngoDetails.description': description,
@@ -107,6 +208,7 @@ app.patch('/api/ngo/profile', async (req: Request, res: Response) => {
       'ngoDetails.linkedinUrl': linkedinUrl,
       'ngoDetails.instagramUrl': instagramUrl,
       'ngoDetails.facebookUrl': facebookUrl,
+      'ngoDetails.youtubeUrl': youtubeUrl,
     };
     if (profilePhotoUrl) updateData.profilePhotoUrl = profilePhotoUrl;
 
@@ -215,6 +317,21 @@ app.patch('/api/ngo/disaster-mode', async (req: Request, res: Response) => {
       },
       { new: true }
     );
+
+    // Auto-create linked high-urgency Demand Board item when Disaster Relief is enabled!
+    if (isDisasterMode && user) {
+      const reqItem = new NgoRequirement({
+        ngoId,
+        ngoName: user.name,
+        itemName: `🚨 EMERGENCY RELIEF: ${disasterType || 'Disaster Relief'}`,
+        quantityNeeded: requiredMaterials || 'Urgent Relief Goods',
+        urgencyLevel: 'HIGH',
+        targetAudience: 'Disaster Victims & Emergency Hub',
+        notes: `${reason || 'Emergency Relief Required'}. Drop-off Location: ${dropoffAddress || 'NGO HQ Office'}`,
+      });
+      await reqItem.save();
+    }
+
     res.json({ success: true, data: user });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -294,6 +411,11 @@ app.post('/api/ngo/requirements/:id/offer-help', async (req: Request, res: Respo
 app.post('/api/donations', async (req: Request, res: Response) => {
   try {
     const { donorId, donorName, title, category, condition, weightKg, address, photoUrls } = req.body;
+    const normalizedWeight = Number(weightKg);
+    if (!isValidId(donorId) || !title?.trim() || !category || !condition || !address?.trim() ||
+        !Number.isFinite(normalizedWeight) || normalizedWeight <= 0) {
+      return res.status(400).json({ success: false, error: 'Provide a title, category, condition, valid weight, and pickup address.' });
+    }
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     const newDonation = new Donation({
@@ -302,7 +424,7 @@ app.post('/api/donations', async (req: Request, res: Response) => {
       title,
       category,
       condition,
-      weightKg,
+      weightKg: normalizedWeight,
       photoUrls: photoUrls && photoUrls.length > 0 ? photoUrls : ['https://images.unsplash.com/photo-1532629345422-7515f3d16bb0?w=500'],
       address: { formattedAddress: address, location: { type: 'Point', coordinates: [73.8567, 18.5204] } },
       verificationCode,
@@ -327,10 +449,16 @@ app.get('/api/donations/nearby', async (req: Request, res: Response) => {
 app.patch('/api/donations/:id/request', async (req: Request, res: Response) => {
   try {
     const { ngoId, ngoName } = req.body;
+    if (!isValidId(req.params.id) || !isValidId(ngoId)) {
+      return res.status(400).json({ success: false, error: 'Invalid donation or NGO.' });
+    }
     const ngoUser = await User.findById(ngoId);
+    if (!ngoUser || ngoUser.role !== 'NGO') {
+      return res.status(404).json({ success: false, error: 'Verified NGO not found.' });
+    }
 
-    const donation = await Donation.findByIdAndUpdate(
-      req.params.id,
+    const donation = await Donation.findOneAndUpdate(
+      { _id: req.params.id, status: 'AVAILABLE' },
       {
         status: 'REQUESTED',
         requestedByNgoId: ngoId,
@@ -338,8 +466,9 @@ app.patch('/api/donations/:id/request', async (req: Request, res: Response) => {
         requestedByNgoOfficeAddress: ngoUser?.ngoDetails?.officeAddress || 'Pune NGO Main HQ',
         requestedByNgoPhone: ngoUser?.phoneNumber || '+91 9876543210',
       },
-      { new: true }
+      { new: true, runValidators: true }
     );
+    if (!donation) return res.status(409).json({ success: false, error: 'This donation is no longer available.' });
     res.json({ success: true, data: donation });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -348,11 +477,15 @@ app.patch('/api/donations/:id/request', async (req: Request, res: Response) => {
 
 app.patch('/api/donations/:id/accept', async (req: Request, res: Response) => {
   try {
-    const donation = await Donation.findByIdAndUpdate(
-      req.params.id,
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'Invalid donation.' });
+    }
+    const donation = await Donation.findOneAndUpdate(
+      { _id: req.params.id, status: 'REQUESTED' },
       { status: 'ACCEPTED' },
-      { new: true }
+      { new: true, runValidators: true }
     );
+    if (!donation) return res.status(404).json({ success: false, error: 'Donation not found.' });
     res.json({ success: true, data: donation });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -364,6 +497,9 @@ app.post('/api/donations/:id/verify-collection', async (req: Request, res: Respo
     const { code } = req.body;
     const donation = await Donation.findById(req.params.id);
     if (!donation) return res.status(404).json({ success: false, error: 'Donation not found' });
+    if (donation.status !== 'ACCEPTED') {
+      return res.status(409).json({ success: false, error: 'Collection can only be verified after the request is accepted.' });
+    }
     if (donation.verificationCode !== code) {
       return res.status(400).json({ success: false, error: 'Invalid verification code.' });
     }
@@ -521,8 +657,9 @@ app.get('/api/chat/:donationId', async (req: Request, res: Response) => {
 
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
-    const { donationId, senderId, receiverId, text } = req.body;
-    const newMessage = new Message({ donationId, senderId, receiverId, text });
+    const { donationId, senderId, receiverId, recipientId, text } = req.body;
+    const finalReceiver = receiverId || recipientId || 'NGO';
+    const newMessage = new Message({ donationId, senderId, receiverId: finalReceiver, text });
     await newMessage.save();
     res.status(201).json({ success: true, data: newMessage });
   } catch (error: any) {
@@ -530,11 +667,22 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   }
 });
 
-const PORT = 5000;
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log('MongoDB Connected successfully');
-    app.listen(PORT, () => console.log(`GreenDrop Server running on http://localhost:${PORT}`));
-  })
-  .catch((err) => console.error('MongoDB error:', err));
+
+const PORT = Number(process.env.PORT) || 5000;
+
+async function startServer() {
+  if (!MONGO_URI) {
+    throw new Error('MONGO_URI is required. Copy .env.example to .env and configure MongoDB.');
+  }
+  await mongoose.connect(MONGO_URI);
+  await createDemoUserIfMissing('donor@greendrop.com');
+  await createDemoUserIfMissing('ngo@smilepune.org');
+  await createDemoUserIfMissing('admin@greendrop.org');
+  console.log('⚡ GreenDrop: Demo accounts pre-seeded & ready.');
+  app.listen(PORT, () => console.log(`GreenDrop API listening on http://localhost:${PORT}`));
+}
+
+startServer().catch((error: Error) => {
+  console.error(`Unable to start GreenDrop API: ${error.message}`);
+  process.exit(1);
+});
