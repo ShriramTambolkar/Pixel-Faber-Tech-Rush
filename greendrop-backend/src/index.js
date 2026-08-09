@@ -479,15 +479,39 @@ app.post('/api/donations/:id/verify-collection', async (req, res) => {
         const donation = await Donation_1.Donation.findById(req.params.id);
         if (!donation)
             return res.status(404).json({ success: false, error: 'Donation not found' });
-        if (donation.status !== 'ACCEPTED') {
-            return res.status(409).json({ success: false, error: 'Collection can only be verified after the request is accepted.' });
-        }
         if (donation.verificationCode !== code) {
             return res.status(400).json({ success: false, error: 'Invalid verification code.' });
         }
+        donation.status = 'CODE_VERIFIED';
+        await donation.save();
+        res.json({ success: true, data: donation, message: 'Passcode verified by NGO! Waiting for donor completion tap.' });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+app.post('/api/donations/:id/confirm-handover', async (req, res) => {
+    try {
+        const donation = await Donation_1.Donation.findById(req.params.id);
+        if (!donation)
+            return res.status(404).json({ success: false, error: 'Donation not found' });
         donation.status = 'COMPLETED';
         await donation.save();
-        res.json({ success: true, data: donation, message: 'Collection verified & completed!' });
+        res.json({ success: true, data: donation, message: 'Handover confirmed & completed by donor!' });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+app.post('/api/donations/:id/media-proof', async (req, res) => {
+    try {
+        const { mediaUrls } = req.body;
+        const donation = await Donation_1.Donation.findById(req.params.id);
+        if (!donation)
+            return res.status(404).json({ success: false, error: 'Donation not found' });
+        donation.photoUrls = [...(donation.photoUrls || []), ...(mediaUrls || [])];
+        await donation.save();
+        res.json({ success: true, data: donation, message: 'Post-donation media proof uploaded successfully!' });
     }
     catch (error) {
         res.status(500).json({ success: false, error: error.message });

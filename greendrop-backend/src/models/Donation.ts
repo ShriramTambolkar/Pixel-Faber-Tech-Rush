@@ -15,7 +15,7 @@ export interface IDonation extends Document {
       coordinates: [number, number];
     };
   };
-  status: 'AVAILABLE' | 'REQUESTED' | 'ACCEPTED' | 'COMPLETED' | 'COLLECTED';
+  status: 'AVAILABLE' | 'REQUESTED' | 'ACCEPTED' | 'CODE_VERIFIED' | 'COMPLETED' | 'COLLECTED';
   requestedByNgoId?: string;
   requestedByNgoName?: string;
   verificationCode: string;
@@ -40,7 +40,7 @@ const donationSchema = new Schema<IDonation>(
     },
     status: { 
       type: String, 
-      enum: ['AVAILABLE', 'REQUESTED', 'ACCEPTED', 'COMPLETED'], 
+      enum: ['AVAILABLE', 'REQUESTED', 'ACCEPTED', 'CODE_VERIFIED', 'COMPLETED', 'COLLECTED'], 
       default: 'AVAILABLE' 
     },
     requestedByNgoId: { type: String },
