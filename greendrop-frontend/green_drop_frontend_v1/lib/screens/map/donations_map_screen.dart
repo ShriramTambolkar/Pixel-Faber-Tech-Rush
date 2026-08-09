@@ -152,12 +152,12 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
     final role = widget.user['role'] ?? 'DONOR';
     final isNgo = role == 'NGO';
 
-    final ngoAcceptedPickups = _donations.where((d) => d['status'] == 'ACCEPTED' || d['status'] == 'AVAILABLE').toList();
+    final ngoAcceptedPickups = _donations.where((d) => d['status'] == 'ACCEPTED' || d['status'] == 'CODE_VERIFIED').toList();
 
     // Generate Map Markers
     final List<Marker> markers = [];
 
-    // NGO Office Markers (Green Pins)
+    // 1. NGO Office Markers (Green Pins) - Visible to BOTH Donors & NGOs
     for (var ngo in _ngoOfficeLocations) {
       final loc = ngo['location'] as LatLng;
       markers.add(
@@ -193,49 +193,50 @@ class _DonationsMapScreenState extends State<DonationsMapScreen> {
       );
     }
 
-    // Donor Accepted Collection Markers (Blue Pins)
-    for (var i = 0; i < ngoAcceptedPickups.length; i++) {
-      final item = ngoAcceptedPickups[i];
-      // Generate realistic spread around Pune for demonstration
-      final lat = 18.5204 + (i * 0.012) - 0.01;
-      final lng = 73.8567 + (i * 0.015) - 0.01;
-      final point = LatLng(lat, lng);
+    // 2. Donor Accepted Collection Markers (Blue Pins) - Visible ONLY to NGOs
+    if (isNgo) {
+      for (var i = 0; i < ngoAcceptedPickups.length; i++) {
+        final item = ngoAcceptedPickups[i];
+        final lat = 18.5204 + (i * 0.012) - 0.01;
+        final lng = 73.8567 + (i * 0.015) - 0.01;
+        final point = LatLng(lat, lng);
 
-      markers.add(
-        Marker(
-          point: point,
-          width: 48,
-          height: 48,
-          child: GestureDetector(
-            onTap: () => _showPinDetailsModal(
-              title: item['title'] ?? 'Donation Item',
-              subtitle: '👤 Donor: ${item['donorName'] ?? "Donor"}',
-              address: item['address']?['formattedAddress'] ?? 'Pune, MH',
-              phone: '+91 9876543210',
-              color: Colors.blue.shade800,
-              icon: Icons.inventory_2,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+        markers.add(
+          Marker(
+            point: point,
+            width: 48,
+            height: 48,
+            child: GestureDetector(
+              onTap: () => _showPinDetailsModal(
+                title: item['title'] ?? 'Donation Item',
+                subtitle: '👤 Donor: ${item['donorName'] ?? "Donor"}',
+                address: item['address']?['formattedAddress'] ?? 'Pune, MH',
+                phone: '+91 9876543210',
+                color: Colors.blue.shade800,
+                icon: Icons.inventory_2,
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                    ),
+                    child: const Icon(Icons.person_pin_circle, color: Colors.white, size: 20),
                   ),
-                  child: const Icon(Icons.person_pin_circle, color: Colors.white, size: 20),
-                ),
-                const Icon(Icons.arrow_drop_down, color: Colors.blue, size: 16),
-              ],
+                  const Icon(Icons.arrow_drop_down, color: Colors.blue, size: 16),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
     }
 
-    // Route points for multi-stop volunteer route line
-    final routePoints = markers.map((m) => m.point).toList();
+    // Route points for multi-stop volunteer route line (NGO only)
+    final routePoints = isNgo ? markers.map((m) => m.point).toList() : <LatLng>[];
 
     return Scaffold(
       body: Column(
