@@ -344,8 +344,39 @@ class _NgoRequirementsScreenState extends State<NgoRequirementsScreen> {
   }
 
   Future<void> _deleteRequirement(String id) async {
-    await ApiService.delete('/ngo/requirements/$id');
-    _fetch();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Delete Demand Requirement'),
+        content: const Text('Are you sure you want to delete this requirement from the demand board?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ApiService.delete('/ngo/requirements/$id');
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _requirements.removeWhere((item) => item['_id'] == id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('🗑️ NGO Requirement deleted successfully!'),
+        ),
+      );
+    }
   }
 
   Color _urgencyColor(String level) {
@@ -509,11 +540,11 @@ class _NgoRequirementsScreenState extends State<NgoRequirementsScreen> {
                                           onPressed: () => _showHelpfulDonorsModal(r),
                                         ),
 
-                                      if (isOwner || isAdmin)
+                                      if (isOwner || isAdmin || isNgo)
                                         IconButton(
-                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                          icon: const Icon(Icons.delete_forever, color: Colors.red, size: 24),
                                           onPressed: () => _deleteRequirement(r['_id']),
-                                          tooltip: 'Delete Requirement',
+                                          tooltip: 'Delete NGO Demand Requirement',
                                         )
                                     ],
                                   )

@@ -63,7 +63,7 @@ class _QrCollectionModalState extends State<QrCollectionModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Colors.green,
-            content: Text('🎉 Collection verified & marked COMPLETED!'),
+            content: Text('🎉 Code verified! Donor screen now unlocked to confirm final handover.'),
           ),
         );
       } else {

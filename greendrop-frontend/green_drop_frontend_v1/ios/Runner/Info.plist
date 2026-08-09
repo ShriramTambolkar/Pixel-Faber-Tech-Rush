@@ -59,6 +59,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>GreenDrop requires camera access to snap photos of donated items.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GreenDrop requires photo gallery access to attach item photos and NGO documents.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>GreenDrop uses your location to discover nearby NGOs and donation pickup locations.</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

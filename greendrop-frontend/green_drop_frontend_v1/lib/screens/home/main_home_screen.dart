@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/greendrop_native_logo.dart';
@@ -109,7 +110,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
       final res = await ApiService.get('/version');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        final latestVersion = data['version'] ?? '1.0.0';
+        final latestVersion = data['version'] ?? '1.0.2';
+        final downloadUrl = data['downloadUrl'] ?? 'https://github.com/shubhamn-coder/PixelFaber-Tech-Rush/releases/latest/download/app-release.apk';
         final updateAvailable = data['updateAvailable'] ?? (latestVersion != currentAppVersion);
         if (updateAvailable && mounted) {
           ScaffoldMessenger.of(context).showMaterialBanner(
@@ -129,11 +131,12 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-                  onPressed: () {
+                  onPressed: () async {
                     ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Downloading live update package...')),
-                    );
+                    final uri = Uri.tryParse(downloadUrl);
+                    if (uri != null && await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
                   },
                   child: const Text('UPDATE NOW'),
                 ),

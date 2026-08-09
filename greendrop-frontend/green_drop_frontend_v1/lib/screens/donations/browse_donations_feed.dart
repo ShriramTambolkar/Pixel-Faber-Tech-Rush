@@ -577,7 +577,59 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
                         ),
                       ],
 
-                      if (status == 'ACCEPTED' || status == 'COMPLETED') ...[
+                      if (status == 'CODE_VERIFIED') ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.green.shade600, width: 1.5),
+                          ),
+                          child: Column(
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.check_circle, color: Colors.green, size: 22),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '✅ NGO Volunteer Passcode Verified! Tap to Confirm Handover.',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (isOwner)
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green.shade800,
+                                    minimumSize: const Size(double.infinity, 42),
+                                  ),
+                                  icon: const Icon(Icons.handshake, color: Colors.white),
+                                  label: const Text(
+                                    'Confirm & Complete Handover',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    await ApiService.post('/donations/${item['_id']}/confirm-handover', {});
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        backgroundColor: Colors.green,
+                                        content: Text('🎉 Handover confirmed! Donation moved to your Impact History.'),
+                                      ),
+                                    );
+                                    _fetchData();
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      if (status == 'ACCEPTED' || status == 'CODE_VERIFIED' || status == 'COMPLETED') ...[
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           margin: const EdgeInsets.only(bottom: 8),
@@ -604,6 +656,7 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
                                 icon: const Icon(Icons.info_outline, color: Colors.blue, size: 20),
                                 tooltip: 'View NGO Profile',
                                 onPressed: () {
+                                  if (!mounted) return;
                                   NgoProfileModal.show(
                                     context,
                                     item['requestedByNgoId'] ?? 'demo_ngo_001',
