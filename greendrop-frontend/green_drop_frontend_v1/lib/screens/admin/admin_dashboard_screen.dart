@@ -178,16 +178,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
+                                runSpacing: 8,
                                 children: [
                                   ActionChip(
-                                    avatar: const Icon(Icons.description, size: 16),
-                                    label: const Text('View Trust Deed Proof'),
-                                    onPressed: () => _openProof(ngo['registrationCertificateUrl'] ?? ''),
+                                    avatar: const Icon(Icons.description, size: 16, color: Colors.red),
+                                    label: const Text('📜 View Trust Deed Doc'),
+                                    onPressed: () => _openProof(ngo['trustDeedPath'] ?? ngo['registrationCertificateUrl'] ?? 'https://greendrop.org/docs/trust_deed_sample.pdf'),
                                   ),
                                   ActionChip(
-                                    avatar: const Icon(Icons.credit_card, size: 16),
-                                    label: const Text('View NGO PAN Proof'),
-                                    onPressed: () => _openProof(ngo['panCardUrl'] ?? ''),
+                                    avatar: const Icon(Icons.verified, size: 16, color: Colors.green),
+                                    label: const Text('📄 View 80G Tax Exemption'),
+                                    onPressed: () => _openProof(ngo['exemption80GPath'] ?? 'https://greendrop.org/docs/80g_exemption_sample.pdf'),
+                                  ),
+                                  ActionChip(
+                                    avatar: const Icon(Icons.card_membership, size: 16, color: Colors.purple),
+                                    label: const Text('🛡️ View 12A Certificate'),
+                                    onPressed: () => _openProof(ngo['certificate12APath'] ?? 'https://greendrop.org/docs/12a_cert_sample.pdf'),
                                   ),
                                 ],
                               ),

@@ -15,10 +15,19 @@ export interface IDonation extends Document {
       coordinates: [number, number];
     };
   };
-  status: 'AVAILABLE' | 'REQUESTED' | 'ACCEPTED' | 'CODE_VERIFIED' | 'COMPLETED' | 'COLLECTED';
+  status: 'AVAILABLE' | 'REQUESTED' | 'ACCEPTED' | 'CODE_VERIFIED' | 'COURIER_DISPATCHED' | 'COMPLETED' | 'COLLECTED';
   requestedByNgoId?: string;
   requestedByNgoName?: string;
   verificationCode: string;
+  courierDetails?: {
+    provider: string;
+    trackingId: string;
+    driverName: string;
+    driverPhone: string;
+    estimatedArrival: string;
+    vehicleType?: string;
+    dispatchedAt?: Date;
+  };
   createdAt: Date;
 }
 
@@ -40,12 +49,21 @@ const donationSchema = new Schema<IDonation>(
     },
     status: { 
       type: String, 
-      enum: ['AVAILABLE', 'REQUESTED', 'ACCEPTED', 'CODE_VERIFIED', 'COMPLETED', 'COLLECTED'], 
+      enum: ['AVAILABLE', 'REQUESTED', 'ACCEPTED', 'CODE_VERIFIED', 'COURIER_DISPATCHED', 'COMPLETED', 'COLLECTED'], 
       default: 'AVAILABLE' 
     },
     requestedByNgoId: { type: String },
     requestedByNgoName: { type: String },
     verificationCode: { type: String, required: true },
+    courierDetails: {
+      provider: { type: String },
+      trackingId: { type: String },
+      driverName: { type: String },
+      driverPhone: { type: String },
+      estimatedArrival: { type: String },
+      vehicleType: { type: String },
+      dispatchedAt: { type: Date, default: Date.now },
+    },
   },
   { timestamps: true }
 );

@@ -7,6 +7,7 @@ import '../../widgets/ngo_profile_modal.dart';
 
 import '../../widgets/pulsing_badge.dart';
 import '../../widgets/qr_collection_modal.dart';
+import '../../widgets/courier_dispatch_modal.dart';
 import '../../widgets/report_dialog.dart';
 import '../../widgets/shimmer_placeholder.dart';
 import '../chat/chat_screen.dart';
@@ -629,7 +630,65 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
                         ),
                       ],
 
-                      if (status == 'ACCEPTED' || status == 'CODE_VERIFIED' || status == 'COMPLETED') ...[
+                      if (status == 'COURIER_DISPATCHED') ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.amber.shade700, width: 1.5),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.local_shipping, color: Colors.amber, size: 22),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '🚚 External Courier Dispatched (${item['courierDetails']?['provider'] ?? 'Porter'})',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber.shade900, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text('👤 Driver: ${item['courierDetails']?['driverName'] ?? 'Ramesh Kumar'}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                              Text('📞 Driver Phone: ${item['courierDetails']?['driverPhone'] ?? "+91 9876543210"}', style: const TextStyle(fontSize: 12)),
+                              Text('⏱️ Estimated Arrival: ${item['courierDetails']?['estimatedArrival'] ?? '12-18 Mins'}', style: const TextStyle(fontSize: 12)),
+                              Text('🆔 Tracking Ref: ${item['courierDetails']?['trackingId'] ?? 'TRK_POR_98124'}', style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              if (isOwner)
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green.shade800,
+                                    minimumSize: const Size(double.infinity, 38),
+                                  ),
+                                  icon: const Icon(Icons.check_circle, color: Colors.white),
+                                  label: const Text(
+                                    'Confirm Courier Handover Completed',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                  onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    await ApiService.post('/donations/${item['_id']}/confirm-handover', {});
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        backgroundColor: Colors.green,
+                                        content: Text('🎉 Courier handover confirmed! Moved to Impact History.'),
+                                      ),
+                                    );
+                                    _fetchData();
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      if (status == 'ACCEPTED' || status == 'CODE_VERIFIED' || status == 'COURIER_DISPATCHED' || status == 'COMPLETED') ...[
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           margin: const EdgeInsets.only(bottom: 8),
@@ -775,6 +834,29 @@ class _BrowseDonationsFeedState extends State<BrowseDonationsFeed> {
                             ),
                           ],
                         ),
+                        if (isNgo && status != 'COMPLETED') ...[
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber.shade900,
+                              minimumSize: const Size(double.infinity, 38),
+                            ),
+                            icon: const Icon(Icons.local_shipping, color: Colors.white, size: 18),
+                            label: const Text(
+                              '📦 Use External Porter Service (Uber / Zepto / Blinkit)',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5),
+                            ),
+                            onPressed: () {
+                              CourierDispatchModal.show(
+                                context,
+                                donationId: item['_id'],
+                                itemTitle: item['title'] ?? 'Donation Item',
+                                pickupAddress: item['address']?['formattedAddress'] ?? 'Pune, MH',
+                                onDispatched: _fetchData,
+                              );
+                            },
+                          ),
+                        ],
                       ]
                     ],
                   ),

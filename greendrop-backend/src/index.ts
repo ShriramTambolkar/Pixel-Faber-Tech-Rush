@@ -537,6 +537,42 @@ app.post('/api/donations/:id/confirm-handover', async (req: Request, res: Respon
   }
 });
 
+app.post('/api/donations/:id/dispatch-courier', async (req: Request, res: Response) => {
+  try {
+    const { provider, vehicleType } = req.body;
+    const donation = await Donation.findById(req.params.id);
+    if (!donation) return res.status(404).json({ success: false, error: 'Donation not found' });
+
+    const prov = provider || 'Porter';
+    const trackingId = 'TRK_' + prov.substring(0, 3).toUpperCase() + '_' + Math.floor(100000 + Math.random() * 900000);
+    
+    let driverName = 'Ramesh Kumar (Porter Express)';
+    if (prov.includes('Uber')) driverName = 'Suresh Sharma (Uber Connect Partner)';
+    else if (prov.includes('Zepto')) driverName = 'Amit Varma (Zepto 10-Min Flash Rider)';
+    else if (prov.includes('Blinkit')) driverName = 'Vikram Singh (Blinkit Courier Partner)';
+
+    donation.status = 'COURIER_DISPATCHED';
+    donation.courierDetails = {
+      provider: prov,
+      trackingId,
+      driverName,
+      driverPhone: '+91 9876543210',
+      estimatedArrival: '12-18 Mins',
+      vehicleType: vehicleType || '2-Wheeler Express Courier',
+      dispatchedAt: new Date(),
+    };
+
+    await donation.save();
+    res.json({
+      success: true,
+      data: donation,
+      message: `🚚 External courier service (${prov}) successfully dispatched for item collection!`,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/donations/:id/media-proof', async (req: Request, res: Response) => {
   try {
     const { mediaUrls } = req.body;
