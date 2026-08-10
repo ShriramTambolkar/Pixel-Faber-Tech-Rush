@@ -114,10 +114,11 @@ class _NgoProfileModalState extends State<NgoProfileModal> {
     }
 
     final p = _ngoProfile ?? {};
-    final isVerified = p['isVerified'] ?? true;
-    final address = p['officeAddress'] ?? 'Pune NGO Office';
-    final desc = p['description'] ?? 'Dedicated to transparent charity and community welfare.';
-    final phone = p['phoneNumber'] ?? '';
+    final ngoDetails = (p['ngoDetails'] as Map<String, dynamic>?) ?? p;
+    final isVerified = p['isVerified'] ?? ngoDetails['isVerified'] ?? true;
+    final address = p['officeAddress'] ?? ngoDetails['officeAddress'] ?? 'Pune NGO Office';
+    final desc = p['description'] ?? ngoDetails['description'] ?? 'Dedicated to transparent charity and community welfare.';
+    final phone = p['phoneNumber'] ?? ngoDetails['phoneNumber'] ?? '';
 
     final userRole = widget.currentUser?['role'] ?? 'DONOR';
     final isDonor = userRole == 'DONOR';

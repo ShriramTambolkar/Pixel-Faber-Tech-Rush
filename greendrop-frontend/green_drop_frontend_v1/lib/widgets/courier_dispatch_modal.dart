@@ -239,7 +239,7 @@ class _CourierDispatchContentState extends State<_CourierDispatchContent> {
             const SizedBox(height: 6),
 
             DropdownButtonFormField<String>(
-              value: _selectedVehicle,
+              initialValue: _selectedVehicle,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
