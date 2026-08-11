@@ -227,14 +227,57 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                role,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
               ),
-            )
+            ),
           ],
         ),
-
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.green.shade900,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              icon: const Icon(Icons.smart_toy, size: 16, color: Colors.green),
+              label: const Text(
+                '🤖 AI HelpBot',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5),
+              ),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (c) => Container(
+                    height: MediaQuery.of(context).size.height * 0.85,
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Scaffold(
+                      appBar: AppBar(
+                        title: const Text('🤖 GreenDrop Master AI Concierge', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        backgroundColor: Colors.green.shade800,
+                        foregroundColor: Colors.white,
+                        automaticallyImplyLeading: false,
+                        actions: [
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(c),
+                          )
+                        ],
+                      ),
+                      body: const ChatbotScreen(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
         backgroundColor: Colors.green.shade800,
         foregroundColor: Colors.white,
         elevation: 2,
