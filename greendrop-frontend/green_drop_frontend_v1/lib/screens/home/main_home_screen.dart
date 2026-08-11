@@ -227,6 +227,9 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
+              child: Text(
+                role,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ),
           ],
