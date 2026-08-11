@@ -34,7 +34,24 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Disable command buffering so un-connected DB queries fail immediately instead of hanging 10 seconds.
+mongoose.set('bufferCommands', false);
+
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
+
+// Middleware to check DB connection readiness
+app.use((req: Request, res: Response, next) => {
+  if (req.path === '/api/health' || req.path === '/api/version' || req.path === '/version') {
+    return next();
+  }
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      error: '⚡ Server Database Initializing: MongoDB Cloud connection is establishing. Please retry in a few seconds.',
+    });
+  }
+  next();
+});
 
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({
@@ -751,15 +768,17 @@ async function connectWithRetry() {
     return;
   }
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
     console.log('✅ MongoDB connected successfully.');
     await createDemoUserIfMissing('donor@greendrop.com');
     await createDemoUserIfMissing('ngo@smilepune.org');
     await createDemoUserIfMissing('admin@greendrop.org');
     console.log('⚡ GreenDrop: Demo accounts pre-seeded & ready.');
   } catch (dbErr: any) {
-    console.error(`⚠️ MongoDB Connection Error: ${dbErr.message}. Retrying connection in 5s...`);
-    setTimeout(connectWithRetry, 5000);
+    console.error(`⚠️ MongoDB Connection Error: ${dbErr.message}. Retrying connection in 3s...`);
+    setTimeout(connectWithRetry, 3000);
   }
 }
 
