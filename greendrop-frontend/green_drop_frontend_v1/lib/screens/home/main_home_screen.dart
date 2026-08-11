@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/greendrop_native_logo.dart';
 import '../auth/auth_screen.dart';
@@ -35,8 +32,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   final Map<int, Widget> _loadedScreens = {};
   bool _notificationsEnabled = true;
 
-  static const String currentAppVersion = '1.0.0';
-
   @override
   void initState() {
     super.initState();
@@ -50,7 +45,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAdminWarning();
-      _checkAppUpdate();
     });
   }
 
@@ -103,49 +97,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         ),
       );
     }
-  }
-
-  Future<void> _checkAppUpdate() async {
-    try {
-      final res = await ApiService.get('/version');
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final latestVersion = data['version'] ?? '1.0.2';
-        final downloadUrl = data['downloadUrl'] ?? 'https://github.com/shubhamn-coder/PixelFaber-Tech-Rush/releases/latest/download/app-release.apk';
-        final updateAvailable = data['updateAvailable'] ?? (latestVersion != currentAppVersion);
-        if (updateAvailable && mounted) {
-          ScaffoldMessenger.of(context).showMaterialBanner(
-            MaterialBanner(
-              backgroundColor: Colors.amber.shade800,
-              content: Text(
-                '🚀 New Update Available (v$latestVersion)! Download latest features.',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              leading: const Icon(Icons.system_update, color: Colors.white),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
-                  },
-                  child: const Text('DISMISS', style: TextStyle(color: Colors.white)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-                  onPressed: () async {
-                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
-                    final uri = Uri.tryParse(downloadUrl);
-                    if (uri != null && await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  child: const Text('UPDATE NOW'),
-                ),
-              ],
-            ),
-          );
-        }
-      }
-    } catch (_) {}
   }
 
   Widget _getOrConstructScreen(int index) {
@@ -245,9 +196,17 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
-              icon: const Icon(Icons.smart_toy, size: 16, color: Colors.green),
+              icon: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.asset(
+                  'assets/images/ai_chat_icon.png',
+                  height: 20,
+                  width: 20,
+                  fit: BoxFit.cover,
+                ),
+              ),
               label: const Text(
-                '🤖 AI HelpBot',
+                'AI HelpBot',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5),
               ),
               onPressed: () {
@@ -262,7 +221,16 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     padding: const EdgeInsets.only(top: 12),
                     child: Scaffold(
                       appBar: AppBar(
-                        title: const Text('🤖 GreenDrop Master AI Concierge', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        title: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.asset('assets/images/ai_chat_icon.png', height: 26, width: 26, fit: BoxFit.cover),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('GreenDrop Master AI Concierge', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                         backgroundColor: Colors.green.shade800,
                         foregroundColor: Colors.white,
                         automaticallyImplyLeading: false,
@@ -321,28 +289,38 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               ListTile(
                 leading: const Icon(Icons.person, color: Colors.green),
                 title: const Text('Edit Account Profile & Details'),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  Navigator.push(
+                  final updated = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (c) => EditDonorProfileScreen(user: widget.user),
                     ),
                   );
+                  if (updated != null && updated is Map<String, dynamic>) {
+                    setState(() {
+                      widget.user.addAll(updated);
+                    });
+                  }
                 },
               ),
             if (isNgo)
               ListTile(
                 leading: const Icon(Icons.edit_note, color: Colors.green),
                 title: const Text('Edit NGO Public Profile'),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  Navigator.push(
+                  final updated = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (c) => EditNgoProfileScreen(user: widget.user),
                     ),
                   );
+                  if (updated != null && updated is Map<String, dynamic>) {
+                    setState(() {
+                      widget.user.addAll(updated);
+                    });
+                  }
                 },
               ),
             SwitchListTile(

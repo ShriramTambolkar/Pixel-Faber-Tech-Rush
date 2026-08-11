@@ -378,19 +378,42 @@ class _RecycleTierScreenState extends State<RecycleTierScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.teal.shade900,
-                                      minimumSize: const Size(double.infinity, 42),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    ),
-                                    icon: const Icon(Icons.recycling, color: Colors.white, size: 18),
-                                    label: const Text(
-                                      '♻️ Claim Batch for Zero-Landfill Processing',
-                                      style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.bold),
-                                    ),
-                                    onPressed: () => _claimItem(item),
-                                  )
+                                  if (widget.user['role'] == 'NGO' || widget.user['role'] == 'ADMIN' || widget.user['role'] == 'RECYCLER')
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal.shade900,
+                                        minimumSize: const Size(double.infinity, 42),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                      icon: const Icon(Icons.recycling, color: Colors.white, size: 18),
+                                      label: const Text(
+                                        '♻️ Claim Batch for Zero-Landfill Processing',
+                                        style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.bold),
+                                      ),
+                                      onPressed: () => _claimItem(item),
+                                    )
+                                  else
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.teal.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.teal.shade200),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.info_outline, color: Colors.teal, size: 16),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'Donor View: Posted for verified NGO & Recycler processing. (Only NGOs can claim batches)',
+                                              style: TextStyle(fontSize: 11, color: Colors.teal, fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
                                 ],
                               ),
                             ),

@@ -171,10 +171,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (isBot) ...[
-                        CircleAvatar(
-                          radius: 12,
-                          backgroundColor: Colors.green.shade800,
-                          child: const Icon(Icons.smart_toy, color: Colors.white, size: 14),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/images/ai_chat_icon.png',
+                            height: 24,
+                            width: 24,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                         const SizedBox(width: 8),
                       ],

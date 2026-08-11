@@ -534,9 +534,9 @@ app.post('/api/donations/:id/verify-collection', async (req: Request, res: Respo
     if (donation.verificationCode !== code) {
       return res.status(400).json({ success: false, error: 'Invalid verification code.' });
     }
-    donation.status = 'CODE_VERIFIED';
+    donation.status = 'COMPLETED';
     await donation.save();
-    res.json({ success: true, data: donation, message: 'Passcode verified by NGO! Waiting for donor completion tap.' });
+    res.json({ success: true, data: donation, message: '🎉 Passcode matched! Pickup donation completed successfully.' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -732,6 +732,69 @@ app.delete('/api/admin/users/:id', async (req: Request, res: Response) => {
   try {
     await User.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'User removed by admin' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 6.5 PROFILE MANAGEMENT API ROUTES
+app.patch(['/api/donor/profile', '/api/users/donor/profile'], async (req: Request, res: Response) => {
+  try {
+    const { donorId, userId, id, name, email, phoneNumber, address, profilePhotoUrl } = req.body;
+    const targetId = donorId || userId || id;
+    let user;
+    if (isValidId(targetId)) {
+      user = await User.findById(targetId);
+    }
+    if (!user && email) {
+      user = await User.findOne({ email });
+    }
+    if (!user) return res.status(404).json({ success: false, error: 'Donor profile user not found.' });
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+    if (profilePhotoUrl !== undefined) user.profilePhotoUrl = profilePhotoUrl;
+    if (address !== undefined) {
+      user.address = {
+        formattedAddress: typeof address === 'string' ? address : (address.formattedAddress || 'Pune, MH'),
+        latitude: user.address?.latitude || 18.5204,
+        longitude: user.address?.longitude || 73.8567,
+      };
+    }
+
+    await user.save();
+    res.json({ success: true, data: user, message: 'Donor profile updated successfully!' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch(['/api/ngo/profile', '/api/users/ngo/profile'], async (req: Request, res: Response) => {
+  try {
+    const { ngoId, userId, id, description, officeAddress, phoneNumber, websiteUrl, linkedinUrl, instagramUrl, facebookUrl, youtubeUrl, profilePhotoUrl } = req.body;
+    const targetId = ngoId || userId || id;
+    let user;
+    if (isValidId(targetId)) {
+      user = await User.findById(targetId);
+    }
+    if (!user) return res.status(404).json({ success: false, error: 'NGO profile user not found.' });
+
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+    if (profilePhotoUrl !== undefined) user.profilePhotoUrl = profilePhotoUrl;
+    if (!user.ngoDetails) user.ngoDetails = {};
+
+    if (description !== undefined) user.ngoDetails.description = description;
+    if (officeAddress !== undefined) user.ngoDetails.officeAddress = officeAddress;
+    if (websiteUrl !== undefined) user.ngoDetails.websiteUrl = websiteUrl;
+    if (linkedinUrl !== undefined) user.ngoDetails.linkedinUrl = linkedinUrl;
+    if (instagramUrl !== undefined) user.ngoDetails.instagramUrl = instagramUrl;
+    if (facebookUrl !== undefined) user.ngoDetails.facebookUrl = facebookUrl;
+    if (youtubeUrl !== undefined) user.ngoDetails.youtubeUrl = youtubeUrl;
+
+    user.markModified('ngoDetails');
+    await user.save();
+    res.json({ success: true, data: user, message: 'NGO public profile updated successfully!' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
