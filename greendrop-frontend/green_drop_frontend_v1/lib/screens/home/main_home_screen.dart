@@ -214,6 +214,39 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           ],
         ),
         actions: [
+          // Bell notification icon
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined,
+                    color: Colors.white, size: 26),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Color(0xFF2E7D32),
+                      content: Text(
+                          '🔔 Notifications: all caught up!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                tooltip: 'Notifications',
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF5722),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 10),
             child: ElevatedButton.icon(
@@ -232,7 +265,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     height: 20, width: 20, fit: BoxFit.cover),
               ),
               label: const Text('AI HelpBot',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11.5)),
               onPressed: _openAiChat,
             ),
           ),
@@ -502,6 +536,7 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF111111))),
                   const SizedBox(height: 12),
+                  // Row 1
                   Row(
                     children: [
                       _quickAction(
@@ -523,6 +558,37 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                         label: 'Find\nEvents',
                         color: const Color(0xFF1565C0),
                         onTap: () => widget.onNavigate(3),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Row 2
+                  Row(
+                    children: [
+                      _quickAction(
+                        icon: Icons.map_rounded,
+                        label: 'Nearby\nNGOs',
+                        color: const Color(0xFF00838F),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (c) => _StandaloneMapPage(
+                                user: widget.user),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _quickAction(
+                        icon: Icons.eco_rounded,
+                        label: 'My\nImpact',
+                        color: const Color(0xFF2E7D32),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (c) =>
+                                ImpactDashboardScreen(user: widget.user),
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       _quickAction(
@@ -1442,6 +1508,18 @@ class _ProfileTab extends StatelessWidget {
             ),
           ],
 
+          _profileTile(
+            context,
+            icon: Icons.map_rounded,
+            title: 'Nearby NGOs — Map View',
+            iconColor: const Color(0xFF00838F),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (c) => _StandaloneMapPage(user: user)),
+            ),
+          ),
+
           if (isAdmin)
             _profileTile(
               context,
@@ -1507,6 +1585,36 @@ class _ProfileTab extends StatelessWidget {
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       trailing: const Icon(Icons.chevron_right, color: Color(0xFFAAAAAA)),
       onTap: onTap,
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  STANDALONE MAP PAGE  — full-screen NGO & Donation map
+//  Launched from: Home "Nearby NGOs" quick action & Profile "Map View" tile
+// ══════════════════════════════════════════════════════════════════════════
+
+class _StandaloneMapPage extends StatelessWidget {
+  final Map<String, dynamic> user;
+  const _StandaloneMapPage({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Row(
+          children: [
+            Icon(Icons.map_rounded, size: 22),
+            SizedBox(width: 8),
+            Text('Nearby NGOs & Donations',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF00838F),
+        foregroundColor: Colors.white,
+        elevation: 2,
+      ),
+      body: _EmbeddedMapView(user: user),
     );
   }
 }
