@@ -20,6 +20,7 @@ import '../dashboard/impact_dashboard_screen.dart';
 import '../recycle/recycle_tier_screen.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../../widgets/notification_center_modal.dart';
 
 // ══════════════════════════════════════════════════════════════════════════
 //  MAIN HOME SCREEN  — 5-tab bottom navigation
@@ -42,6 +43,7 @@ class MainHomeScreen extends StatefulWidget {
 class _MainHomeScreenState extends State<MainHomeScreen> {
   late int _currentIndex;
   bool _notificationsEnabled = true;
+  bool _hasUnreadNotifications = true;
 
   @override
   void initState() {
@@ -213,7 +215,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           ],
         ),
         actions: [
-          // Bell notification icon
+          // Bell notification icon with Unread Red Dot Badge
           Stack(
             alignment: Alignment.center,
             children: [
@@ -221,29 +223,29 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 icon: const Icon(Icons.notifications_outlined,
                     color: Colors.white, size: 26),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: Color(0xFF2E7D32),
-                      content: Text(
-                          '🔔 Notifications: all caught up!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                  if (_hasUnreadNotifications) {
+                    setState(() {
+                      _hasUnreadNotifications = false;
+                    });
+                  }
+                  NotificationCenterModal.show(context, widget.user);
                 },
-                tooltip: 'Notifications',
+                tooltip: 'Notifications Hub',
               ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 9,
-                  height: 9,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF5722),
-                    shape: BoxShape.circle,
+              if (_hasUnreadNotifications)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF3D00),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.green.shade800, width: 1.5),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           Padding(
