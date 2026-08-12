@@ -163,11 +163,11 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           onOpenChat: _openAiChat,
         );
       case 1:
-        return BrowseDonationsFeed(user: widget.user);
+        return _DonateTab(user: widget.user);
       case 2:
         return RecycleTierScreen(user: widget.user);
       case 3:
-        return _EventsAndMapTab(user: widget.user);
+        return _ExploreTab(user: widget.user);
       case 4:
         return _ProfileTab(
           user: widget.user,
@@ -841,56 +841,60 @@ class _HomeDashboardState extends State<_HomeDashboard> {
 //  TAB 3 — EVENTS & MAP (List ↔ Map toggle)
 // ══════════════════════════════════════════════════════════════════════════
 
-class _EventsAndMapTab extends StatefulWidget {
+// ══════════════════════════════════════════════════════════════════════════
+//  TAB 1 — DONATE  (Browse Donations | NGO Demands Board toggle)
+// ══════════════════════════════════════════════════════════════════════════
+
+class _DonateTab extends StatefulWidget {
   final Map<String, dynamic> user;
-  const _EventsAndMapTab({required this.user});
+  const _DonateTab({required this.user});
 
   @override
-  State<_EventsAndMapTab> createState() => _EventsAndMapTabState();
+  State<_DonateTab> createState() => _DonateTabState();
 }
 
-class _EventsAndMapTabState extends State<_EventsAndMapTab>
-    with SingleTickerProviderStateMixin {
-  bool _showMap = false;
+class _DonateTabState extends State<_DonateTab> {
+  int _subIndex = 0; // 0 = Browse Donations, 1 = NGO Demands
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // ── List / Map toggle bar ──
+        // ── Sub-tab toggle bar ──
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           child: Row(
             children: [
-              _toggleBtn(
-                label: '📋  Events List',
-                active: !_showMap,
-                onTap: () => setState(() => _showMap = false),
+              _subTab(
+                label: '🫶  Browse Donations',
+                active: _subIndex == 0,
+                onTap: () => setState(() => _subIndex = 0),
               ),
               const SizedBox(width: 10),
-              _toggleBtn(
-                label: '🗺️  Map View',
-                active: _showMap,
-                onTap: () => setState(() => _showMap = true),
+              _subTab(
+                label: '📋  NGO Demands Board',
+                active: _subIndex == 1,
+                onTap: () => setState(() => _subIndex = 1),
               ),
             ],
           ),
         ),
-        // ── Content ──
         Expanded(
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 280),
-            child: _showMap
-                ? _EmbeddedMapView(key: const ValueKey('map'), user: widget.user)
-                : NgoEventsFeed(key: const ValueKey('list'), user: widget.user),
+            duration: const Duration(milliseconds: 250),
+            child: _subIndex == 0
+                ? BrowseDonationsFeed(
+                    key: const ValueKey('browse'), user: widget.user)
+                : NgoRequirementsScreen(
+                    key: const ValueKey('demands'), user: widget.user),
           ),
         ),
       ],
     );
   }
 
-  Widget _toggleBtn(
+  Widget _subTab(
       {required String label,
       required bool active,
       required VoidCallback onTap}) {
@@ -908,7 +912,7 @@ class _EventsAndMapTabState extends State<_EventsAndMapTab>
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.w700,
               color: active ? Colors.white : const Color(0xFF666666),
             ),
@@ -916,6 +920,102 @@ class _EventsAndMapTabState extends State<_EventsAndMapTab>
         ),
       ),
     );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  TAB 3 — EXPLORE  (Events | NGO Directory | Achievements | Map)
+// ══════════════════════════════════════════════════════════════════════════
+
+class _ExploreTab extends StatefulWidget {
+  final Map<String, dynamic> user;
+  const _ExploreTab({required this.user});
+
+  @override
+  State<_ExploreTab> createState() => _ExploreTabState();
+}
+
+class _ExploreTabState extends State<_ExploreTab> {
+  int _subIndex = 0;
+
+  static const _tabs = [
+    (icon: '📅', label: 'Events'),
+    (icon: '🏢', label: 'NGO Directory'),
+    (icon: '🏆', label: 'Achievements'),
+    (icon: '🗺️', label: 'Map'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // ── Horizontal scrollable sub-tab pills ──
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(_tabs.length, (i) {
+                final t = _tabs[i];
+                final active = _subIndex == i;
+                return Padding(
+                  padding: EdgeInsets.only(right: i < _tabs.length - 1 ? 8 : 0),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _subIndex = i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${t.icon}  ${t.label}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color:
+                              active ? Colors.white : const Color(0xFF555555),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+        // ── Content ──
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            child: _buildContent(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent() {
+    switch (_subIndex) {
+      case 0:
+        return NgoEventsFeed(key: const ValueKey('events'), user: widget.user);
+      case 1:
+        return NgoDirectoryScreen(
+            key: const ValueKey('directory'), user: widget.user);
+      case 2:
+        return NgoAchievementsScreen(
+            key: const ValueKey('achievements'), user: widget.user);
+      case 3:
+        return _EmbeddedMapView(
+            key: const ValueKey('map'), user: widget.user);
+      default:
+        return NgoEventsFeed(key: const ValueKey('events'), user: widget.user);
+    }
   }
 }
 
@@ -1244,6 +1344,60 @@ class _ProfileTab extends StatelessWidget {
 
           const SizedBox(height: 8),
 
+          // ── Impact Dashboard card ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (c) => ImpactDashboardScreen(user: user)),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.teal.shade700, Colors.teal.shade500],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.eco, color: Colors.white, size: 32),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'My Impact Dashboard',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'View your donation history, stats & activity',
+                            style: TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios,
+                        color: Colors.white70, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
           // ── Menu items ──
           if (isDonor)
             _profileTile(
@@ -1287,50 +1441,6 @@ class _ProfileTab extends StatelessWidget {
               ),
             ),
           ],
-
-          _profileTile(
-            context,
-            icon: Icons.fact_check,
-            title: 'NGO Demands Board',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (c) => NgoRequirementsScreen(user: user)),
-            ),
-          ),
-
-          _profileTile(
-            context,
-            icon: Icons.search,
-            title: 'Verified NGO Directory',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (c) => NgoDirectoryScreen(user: user)),
-            ),
-          ),
-
-          _profileTile(
-            context,
-            icon: Icons.emoji_events,
-            title: 'NGO Achievements Showcase',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (c) => NgoAchievementsScreen(user: user)),
-            ),
-          ),
-
-          _profileTile(
-            context,
-            icon: Icons.eco,
-            title: 'My Impact Dashboard',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (c) => ImpactDashboardScreen(user: user)),
-            ),
-          ),
 
           if (isAdmin)
             _profileTile(
