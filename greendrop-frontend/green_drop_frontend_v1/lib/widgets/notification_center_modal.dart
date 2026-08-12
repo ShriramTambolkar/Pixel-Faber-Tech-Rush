@@ -28,8 +28,22 @@ class _NotificationCenterModalState extends State<NotificationCenterModal> {
     final warning = widget.user['warningMessage'] ?? widget.user['warning'];
     final hasWarning = warning != null && warning.toString().trim().isNotEmpty;
 
+    // Real notifications list generated dynamically
+    final List<Map<String, dynamic>> notifications = [];
+
+    if (hasWarning) {
+      notifications.add({
+        'type': 'ADMIN_WARNING',
+        'title': '🚨 ADMINISTRATIVE WARNING ISSUED',
+        'subtitle': warning.toString(),
+        'time': 'Just now',
+        'badge': 'Admin Alert',
+        'isWarning': true,
+      });
+    }
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.82,
+      height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -49,7 +63,7 @@ class _NotificationCenterModalState extends State<NotificationCenterModal> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    isDonor ? '🔔 Donor Notifications Hub' : '🔔 NGO Notifications Hub',
+                    isDonor ? '🔔 Donor Notifications' : '🔔 NGO Notifications',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -65,311 +79,124 @@ class _NotificationCenterModalState extends State<NotificationCenterModal> {
             ),
           ),
 
-          // Scrollable Notifications List
+          // Content Area
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // 🚨 ADMIN WARNING SECTION (CRITICAL HIGHLIGHT)
-                _buildAdminWarningSection(hasWarning, warning?.toString()),
-
-                const SizedBox(height: 16),
-
-                if (isDonor) ...[
-                  // 1. MESSAGES SENT BY NGO
-                  _buildSectionHeader('💬 New Messages Sent by NGO', Colors.blue.shade800),
-                  const SizedBox(height: 8),
-                  _buildNotificationCard(
-                    icon: Icons.chat_bubble_outline,
-                    iconColor: Colors.blue.shade700,
-                    title: 'SAMS Relief Network',
-                    subtitle: 'Thank you for your clothing donation! Our pickup executive will reach your address tomorrow at 10:00 AM.',
-                    time: '10 mins ago',
-                    badge: 'NGO Message',
-                    badgeColor: Colors.blue.shade100,
-                    textColor: Colors.blue.shade900,
+            child: notifications.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.notifications_off_outlined,
+                            size: 48,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No New Notifications',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF111111),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          isDonor
+                              ? "You're all caught up! Real-time notifications for NGO messages, pickup requests, recycler requests, and admin alerts will appear here."
+                              : "You're all caught up! Real-time notifications for donor messages, claim acceptances, and admin alerts will appear here.",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.shield_outlined, color: Colors.green.shade800, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Account Status: Active & Clean ✓',
+                                style: TextStyle(
+                                  color: Colors.green.shade900,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: notifications.length,
+                    itemBuilder: (context, index) {
+                      final item = notifications[index];
+                      if (item['isWarning'] == true) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.shade300, width: 1.5),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    item['title'],
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                item['subtitle'],
+                                style: TextStyle(
+                                  color: Colors.red.shade900,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
-                  _buildNotificationCard(
-                    icon: Icons.chat_bubble_outline,
-                    iconColor: Colors.blue.shade700,
-                    title: 'Smile Foundation Pune',
-                    subtitle: 'Hi! We received your inquiry regarding school textbook sets. Pickup slot confirmed.',
-                    time: '2 hours ago',
-                    badge: 'NGO Message',
-                    badgeColor: Colors.blue.shade100,
-                    textColor: Colors.blue.shade900,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 2. NGO REQUESTS FOR DONATIONS
-                  _buildSectionHeader('📋 NGO Pickup & Claim Requests', Colors.orange.shade800),
-                  const SizedBox(height: 8),
-                  _buildNotificationCard(
-                    icon: Icons.volunteer_activism,
-                    iconColor: Colors.orange.shade800,
-                    title: 'Smile Foundation Pune Requested Claim',
-                    subtitle: 'Requested to claim your posted donation: "Warm Winter Jackets & Sweaters (Qty: 5)".',
-                    time: '25 mins ago',
-                    badge: 'NGO Request',
-                    badgeColor: Colors.orange.shade100,
-                    textColor: Colors.orange.shade900,
-                  ),
-                  _buildNotificationCard(
-                    icon: Icons.volunteer_activism,
-                    iconColor: Colors.orange.shade800,
-                    title: 'Goonj Urban Relief Hub Requested Claim',
-                    subtitle: 'Sent a claim request for: "Class 10 NCERT Textbooks & Notebooks".',
-                    time: '1 day ago',
-                    badge: 'NGO Request',
-                    badgeColor: Colors.orange.shade100,
-                    textColor: Colors.orange.shade900,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 3. RECYCLER PICKUP REQUESTS
-                  _buildSectionHeader('♻️ Recycler Pickup Requests', Colors.teal.shade800),
-                  const SizedBox(height: 8),
-                  _buildNotificationCard(
-                    icon: Icons.recycling,
-                    iconColor: Colors.teal.shade800,
-                    title: 'EcoGreen Upcyclers Request',
-                    subtitle: 'EcoGreen Upcyclers requested to collect 8kg Scrap Paper & Cardboard from your location.',
-                    time: '45 mins ago',
-                    badge: 'Recycler Request',
-                    badgeColor: Colors.teal.shade100,
-                    textColor: Colors.teal.shade900,
-                  ),
-                  _buildNotificationCard(
-                    icon: Icons.electrical_services,
-                    iconColor: Colors.teal.shade800,
-                    title: 'Pune E-Waste Recyclers Request',
-                    subtitle: 'Scheduled a pickup slot request for your obsolete laptops & cables under Zero-Waste Tier.',
-                    time: '3 hours ago',
-                    badge: 'Recycler Request',
-                    badgeColor: Colors.teal.shade100,
-                    textColor: Colors.teal.shade900,
-                  ),
-                ] else ...[
-                  // 1. NEW MESSAGES SENT BY DONOR (FOR NGO)
-                  _buildSectionHeader('💬 New Messages Sent by Donor', Colors.blue.shade800),
-                  const SizedBox(height: 8),
-                  _buildNotificationCard(
-                    icon: Icons.mark_chat_read,
-                    iconColor: Colors.blue.shade700,
-                    title: 'Message from Donor: Rahul Sharma',
-                    subtitle: '"Hi! The 50 Kg Rice Bags are packed and placed near the gate ready for pickup."',
-                    time: '15 mins ago',
-                    badge: 'Donor Message',
-                    badgeColor: Colors.blue.shade100,
-                    textColor: Colors.blue.shade900,
-                  ),
-                  _buildNotificationCard(
-                    icon: Icons.mark_chat_read,
-                    iconColor: Colors.blue.shade700,
-                    title: 'Message from Donor: Priya Patel',
-                    subtitle: '"Can your pickup vehicle come around 5:30 PM today instead of morning?"',
-                    time: '1 hour ago',
-                    badge: 'Donor Message',
-                    badgeColor: Colors.blue.shade100,
-                    textColor: Colors.blue.shade900,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 2. DONOR ACCEPTED REQUESTS (FOR NGO)
-                  _buildSectionHeader('✅ Donor Request Acceptances', Colors.green.shade800),
-                  const SizedBox(height: 8),
-                  _buildNotificationCard(
-                    icon: Icons.check_circle_outline,
-                    iconColor: Colors.green.shade800,
-                    title: 'Rahul Sharma ACCEPTED Request',
-                    subtitle: 'Donor accepted your pickup request for "50 Kg Grain & Pulses Donation". You can now view OTP code.',
-                    time: '30 mins ago',
-                    badge: 'Accepted ✓',
-                    badgeColor: Colors.green.shade100,
-                    textColor: Colors.green.shade900,
-                  ),
-                  _buildNotificationCard(
-                    icon: Icons.check_circle_outline,
-                    iconColor: Colors.green.shade800,
-                    title: 'Anita Roy ACCEPTED Request',
-                    subtitle: 'Donor accepted your pickup schedule for "First Aid Kits & Emergency Medicines".',
-                    time: '2 hours ago',
-                    badge: 'Accepted ✓',
-                    badgeColor: Colors.green.shade100,
-                    textColor: Colors.green.shade900,
-                  ),
-                ],
-              ],
-            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, Color color) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-        color: color,
-      ),
-    );
-  }
-
-  Widget _buildAdminWarningSection(bool hasWarning, String? warningMsg) {
-    if (hasWarning) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red.shade300, width: 1.5),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
-                SizedBox(width: 8),
-                Text(
-                  '🚨 ADMINISTRATIVE WARNING ISSUED',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              warningMsg ?? 'Administrative policy violation recorded.',
-              style: TextStyle(
-                color: Colors.red.shade900,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.shade200),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.shield_outlined, color: Colors.green.shade800, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '🛡️ Account Status: Clean. No administrative warnings issued.',
-                style: TextStyle(
-                  color: Colors.green.shade900,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  Widget _buildNotificationCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required String time,
-    required String badge,
-    required Color badgeColor,
-    required Color textColor,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: badgeColor,
-              child: Icon(icon, color: iconColor, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: badgeColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          badge,
-                          style: TextStyle(
-                            color: textColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black87,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '🕒 $time',
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -51,6 +51,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     // Map old admin index (10) → profile tab (4)
     _currentIndex = widget.initialIndex > 4 ? 4 : widget.initialIndex;
     NotificationService().init();
+
+    final warning = widget.user['warningMessage'] ?? widget.user['warning'];
+    _hasUnreadNotifications = warning != null && warning.toString().trim().isNotEmpty;
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAdminWarning());
   }
 
