@@ -1,0 +1,38 @@
+# GreenDrop 🌱
+
+GreenDrop is a platform designed to connect donors with NGOs and
+make the donation process easier and more efficient.
+
+## Features
+
+- Donor registration and login
+- NGO registration and login
+- Donation listings
+- Donation acceptance
+- Image uploads
+- Donation status tracking
+- Firebase integration
+
+## Tech Stack
+
+- Flutter
+- Dart
+- Firebase Authentication
+- Firebase Firestore
+- Firebase Storage
+
+## My Contribution
+
+- Contributed to the development of the application
+- Worked on assigned application features
+- Participated in testing and debugging
+- Collaborated with the team during the Tech Rush hackathon
+
+## Team Project
+
+GreenDrop was developed as a team project for the Tech Rush Hackathon.
+
+## Project Objective
+
+The goal of GreenDrop is to make it easier for people to donate
+useful items and connect with NGOs that can make use of those donations.
