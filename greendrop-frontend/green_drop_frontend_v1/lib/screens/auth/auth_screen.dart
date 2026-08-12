@@ -6,7 +6,6 @@ import '../../services/api_service.dart';
 import '../../widgets/greendrop_native_logo.dart';
 import '../home/main_home_screen.dart';
 
-
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -14,26 +13,35 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
   bool _isLogin = true;
   String _role = 'DONOR';
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = true;
 
-  final _emailController = TextEditingController(text: 'donor@greendrop.com');
+  final _emailController    = TextEditingController(text: 'donor@greendrop.com');
   final _passwordController = TextEditingController(text: 'demo123');
-  final _nameController = TextEditingController(text: 'Demo Donor');
-  final _phoneController = TextEditingController(text: '+91 9876543210');
+  final _nameController     = TextEditingController(text: 'Demo Donor');
+  final _phoneController    = TextEditingController(text: '+91 9876543210');
 
-  final _darpanIdController = TextEditingController();
-  final _certUrlController = TextEditingController();
-  final _panUrlController = TextEditingController();
+  final _darpanIdController      = TextEditingController();
+  final _certUrlController       = TextEditingController();
+  final _panUrlController        = TextEditingController();
   final _officeAddressController = TextEditingController();
 
   String? _trustDeedPath;
   String? _exemption80GPath;
   String? _certificate12APath;
   final ImagePicker _picker = ImagePicker();
+
+  // ─────────── colour tokens ───────────
+  static const _dark1  = Color(0xFF082215);
+  static const _dark2  = Color(0xFF13422A);
+  static const _green  = Color(0xFF1E5631);
+  static const _green2 = Color(0xFF2E7D52);
+  static const _accent = Color(0xFF4CAF50);
+  static const _white  = Colors.white;
 
   Future<void> _pickDocument(String type) async {
     final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
@@ -59,20 +67,19 @@ class _AuthScreenState extends State<AuthScreen> {
         _role = 'DONOR';
         _nameController.text = 'Demo Donor';
         _emailController.text = 'donor@greendrop.com';
-
         _phoneController.text = '+91 9876543210';
       } else if (type == 'NGO') {
         _role = 'NGO';
-        _nameController.text = 'SAMS Relief Network';
+        _nameController.text  = 'SAMS Relief Network';
         _emailController.text = 'ngo@samsrelief.org';
         _phoneController.text = '+91 9876500112';
-        _darpanIdController.text = 'MH/2026/0048123';
-        _certUrlController.text = 'trust_deed_document.pdf';
-        _panUrlController.text = '80g_tax_certificate.pdf';
+        _darpanIdController.text     = 'MH/2026/0048123';
+        _certUrlController.text      = 'trust_deed_document.pdf';
+        _panUrlController.text       = '80g_tax_certificate.pdf';
         _officeAddressController.text = 'Kothrud, Pune, MH 411038';
       } else if (type == 'ADMIN') {
         _role = 'ADMIN';
-        _nameController.text = 'Platform System Admin';
+        _nameController.text  = 'Platform System Admin';
         _emailController.text = 'admin@greendrop.org';
         _phoneController.text = '+91 0000000000';
       }
@@ -99,7 +106,8 @@ class _AuthScreenState extends State<AuthScreen> {
           'darpanId': 'MH/2026/0048123',
           'officeAddress': 'Kothrud, Pune, MH 411038',
           'isVerified': true,
-          'description': 'SAMS Relief Network is dedicated to community welfare, disaster relief, and food distribution in Kothrud, Pune.',
+          'description':
+              'SAMS Relief Network is dedicated to community welfare, disaster relief, and food distribution in Kothrud, Pune.',
         },
       };
     } else {
@@ -114,7 +122,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    final email = _emailController.text.trim();
+    final email    = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty) {
@@ -133,10 +141,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
 
     final path = _isLogin ? '/auth/login' : '/auth/register';
-    Map<String, dynamic> body = {
-      'email': email,
-      'password': password,
-    };
+    Map<String, dynamic> body = {'email': email, 'password': password};
 
     if (!_isLogin) {
       body.addAll({
@@ -144,7 +149,6 @@ class _AuthScreenState extends State<AuthScreen> {
         'name': _nameController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
       });
-
       if (_role == 'NGO') {
         body['ngoDetails'] = {
           'darpanId': _darpanIdController.text.trim(),
@@ -156,55 +160,60 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     try {
-      final res = await ApiService.post(path, body);
+      final res  = await ApiService.post(path, body);
       final data = jsonDecode(res.body);
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (!mounted) return;
         final userData = data['data'] as Map<String, dynamic>;
         final userRole = userData['role'] ?? 'DONOR';
         final int targetIndex = (userRole == 'ADMIN') ? 10 : 0;
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => MainHomeScreen(user: userData, initialIndex: targetIndex),
+            builder: (context) =>
+                MainHomeScreen(user: userData, initialIndex: targetIndex),
           ),
         );
         return;
       }
       if (mounted) {
-        // Fallback for demo logins if API returned error
         if (email.contains('greendrop') || email.contains('smilepune') || _isLogin) {
           final fallbackData = _getFallbackDemoUser(email, _role);
           final int targetIndex = (fallbackData['role'] == 'ADMIN') ? 10 : 0;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(ApiService.errorMessage(res, fallback: 'Signed in with demo user profile.'))),
+            SnackBar(
+                content: Text(ApiService.errorMessage(res,
+                    fallback: 'Signed in with demo user profile.'))),
           );
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => MainHomeScreen(user: fallbackData, initialIndex: targetIndex),
+              builder: (context) =>
+                  MainHomeScreen(user: fallbackData, initialIndex: targetIndex),
             ),
           );
           return;
         }
-
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ApiService.errorMessage(res, fallback: 'Unable to sign in.'))),
+          SnackBar(
+              content: Text(
+                  ApiService.errorMessage(res, fallback: 'Unable to sign in.'))),
         );
       }
     } catch (_) {
       if (mounted) {
-        // Offline / Unreachable API fallback mode so dashboard page ALWAYS loads!
         final fallbackData = _getFallbackDemoUser(email, _role);
         final int targetIndex = (fallbackData['role'] == 'ADMIN') ? 10 : 0;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('⚡ Server offline: Loaded GreenDrop in Offline Demo Mode.')),
+          const SnackBar(
+              content:
+                  Text('⚡ Server offline: Loaded GreenDrop in Offline Demo Mode.')),
         );
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => MainHomeScreen(user: fallbackData, initialIndex: targetIndex),
+            builder: (context) =>
+                MainHomeScreen(user: fallbackData, initialIndex: targetIndex),
           ),
         );
       }
@@ -226,43 +235,38 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
-
+  // ════════════════════════════════════════════════════════════
+  //  BUILD
+  // ════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. AMBIENT ECO MESH GRADIENT BACKDROP
+          // ── full-screen gradient background ──
           Container(
-            width: double.infinity,
-            height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF082215), // Deep Midnight Forest
-                  Color(0xFF13422A), // Rich Emerald Pine
-                  Color(0xFF1E5631), // Vibrant Green
-                  Color(0xFFF4F7F4), // Clean Light Contrast Base
-                ],
+                colors: [_dark1, _dark2, _green, Color(0xFFF0F4F0)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: [0.0, 0.3, 0.55, 1.0],
+                stops: [0.0, 0.28, 0.52, 1.0],
               ),
             ),
           ),
 
-          // 2. SOFT AMBIENT GLOW ORB
+          // ── ambient glow top-right ──
           Positioned(
-            top: -60,
-            right: -60,
+            top: -70,
+            right: -70,
             child: Container(
-              width: 260,
-              height: 260,
+              width: 280,
+              height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF81C784).withValues(alpha: 0.25),
+                    const Color(0xFF81C784).withValues(alpha: 0.22),
                     Colors.transparent,
                   ],
                 ),
@@ -270,426 +274,502 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
 
-          // 3. SCROLLABLE FORM CONTAINER
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // HERO APP LOGO & HEADER BANNER WITH GLASS GLOW
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0D3B1E), Color(0xFF1E5631), Color(0xFF4C9A2A)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: const Color(0xFF81C784).withValues(alpha: 0.3),
-                          width: 1.2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          )
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const GreenDropNativeLogo(
-                            size: 75,
-                            animate: true,
-                            showText: true,
-                            textColor: Colors.white,
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Text(
-                              'Where giving back becomes second nature',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Color(0xFFE1E9DF),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _buildGlassFeatureBadge(
-                                icon: Icons.eco,
-                                label: 'Zero Waste Tier',
-                                badgeColor: const Color(0xFF81C784),
-                              ),
-                              _buildGlassFeatureBadge(
-                                icon: Icons.warning_amber_rounded,
-                                label: 'Disaster Relief Mode',
-                                badgeColor: const Color(0xFFFFB74D),
-                              ),
-                              _buildGlassFeatureBadge(
-                                icon: Icons.verified_user_rounded,
-                                label: 'Verified NGO Network',
-                                badgeColor: const Color(0xFF64B5F6),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                // QUICK DEMO ACCOUNTS BAR FOR 1-CLICK LOGIN
-                Card(
-                  color: Colors.white,
-                  elevation: 1.5,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: Colors.green.shade200, width: 1),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.bolt, size: 14, color: Colors.orange.shade800),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Quick 1-Click Demo Login',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green.shade900,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  side: BorderSide(color: Colors.green.shade700, width: 1.2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                icon: Icon(Icons.person, size: 14, color: Colors.green.shade800),
-                                label: Text('Donor', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade900)),
-                                onPressed: () => _fillDemoAccount('DONOR'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  side: BorderSide(color: Colors.blue.shade700, width: 1.2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                icon: Icon(Icons.corporate_fare, size: 14, color: Colors.blue.shade800),
-                                label: Text('NGO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade900)),
-                                onPressed: () => _fillDemoAccount('NGO'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  side: BorderSide(color: Colors.orange.shade800, width: 1.2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                icon: Icon(Icons.security, size: 14, color: Colors.orange.shade900),
-                                label: Text('Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange.shade900)),
-                                onPressed: () => _fillDemoAccount('ADMIN'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+          // ── scrollable content ──
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Column(
+                    children: [
+                      _buildHeroBanner(),
+                      const SizedBox(height: 16),
+                      _buildDemoBar(),
+                      const SizedBox(height: 16),
+                      _buildFormCard(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                // MAIN FORM CARD CONTAINER
-                Card(
-                  color: Colors.white,
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // TOGGLE LOGIN / REGISTER TABS
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ChoiceChip(
-                                label: const Center(
-                                  child: Text(
-                                    'Log In',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                selected: _isLogin,
-                                selectedColor: Colors.green.shade800,
-                                labelStyle: TextStyle(
-                                  color: _isLogin ? Colors.white : Colors.black87,
-                                ),
-                                onSelected: (val) => setState(() => _isLogin = true),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ChoiceChip(
-                                label: const Center(
-                                  child: Text(
-                                    'Register',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                selected: !_isLogin,
-                                selectedColor: Colors.green.shade800,
-                                labelStyle: TextStyle(
-                                  color: !_isLogin ? Colors.white : Colors.black87,
-                                ),
-                                onSelected: (val) => setState(() => _isLogin = false),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
+  // ════════════════════════════════════════════════════════════
+  //  SECTION 1 — Hero banner (dark green card with logo + chips)
+  // ════════════════════════════════════════════════════════════
+  Widget _buildHeroBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0C3320), Color(0xFF1B5E38), Color(0xFF2E7D52)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+            color: const Color(0xFF81C784).withValues(alpha: 0.28), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── logo ──
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B5E38),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                  color: const Color(0xFF81C784).withValues(alpha: 0.5),
+                  width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const GreenDropNativeLogo(
+              size: 48,
+              animate: true,
+              showText: false,
+            ),
+          ),
+          const SizedBox(height: 10),
 
-                        // ROLE SELECTION CARDS IF REGISTERING (DONOR OR NGO ONLY)
-                        if (!_isLogin) ...[
-                          const Text(
-                            'Select Account Type:',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _buildRoleCard('DONOR', 'Donor 👤', Colors.green),
-                              const SizedBox(width: 8),
-                              _buildRoleCard('NGO', 'NGO 🏢', Colors.blue),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Full Name / Organization Name *',
-                              prefixIcon: Icon(Icons.person),
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _phoneController,
-                            decoration: const InputDecoration(
-                              labelText: 'Contact Phone Number *',
-                              prefixIcon: Icon(Icons.phone),
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
+          // ── app name ──
+          const Text(
+            'GreenDrop',
+            style: TextStyle(
+              color: _white,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 8),
 
-                          if (_role == 'NGO') ...[
-                            TextField(
-                              controller: _darpanIdController,
-                              decoration: const InputDecoration(
-                                labelText: 'NGO NITI Aayog Darpan ID (Confidential)',
-                                prefixIcon: Icon(Icons.verified),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _officeAddressController,
-                              decoration: const InputDecoration(
-                                labelText: 'Registered Office Address *',
-                                prefixIcon: Icon(Icons.location_city),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'NGO Verification Documents (PDF / Photos):',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                                      side: BorderSide(color: _trustDeedPath != null ? Colors.green : Colors.blue.shade400),
-                                    ),
-                                    icon: Icon(_trustDeedPath != null ? Icons.check_circle : Icons.upload_file, size: 16, color: _trustDeedPath != null ? Colors.green : Colors.blue.shade800),
-                                    label: Text(
-                                      _trustDeedPath != null ? 'Trust Deed Attached' : 'Attach Trust Deed',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                                    ),
-                                    onPressed: () => _pickDocument('trust'),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                                      side: BorderSide(color: _exemption80GPath != null ? Colors.green : Colors.blue.shade400),
-                                    ),
-                                    icon: Icon(_exemption80GPath != null ? Icons.check_circle : Icons.upload_file, size: 16, color: _exemption80GPath != null ? Colors.green : Colors.blue.shade800),
-                                    label: Text(
-                                      _exemption80GPath != null ? '80G Attached' : 'Attach 80G Cert',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                                    ),
-                                    onPressed: () => _pickDocument('80g'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(double.infinity, 38),
-                                side: BorderSide(color: _certificate12APath != null ? Colors.green : Colors.blue.shade400),
-                              ),
-                              icon: Icon(_certificate12APath != null ? Icons.check_circle : Icons.upload_file, size: 16, color: _certificate12APath != null ? Colors.green : Colors.blue.shade800),
-                              label: Text(
-                                _certificate12APath != null ? '12A Certificate Attached' : 'Attach 12A Registration Certificate',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                              onPressed: () => _pickDocument('12a'),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        ],
+          // ── tagline pill ──
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text(
+              'Where giving back becomes second nature',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFDCF0DC),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
 
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Registered Email Address *',
-                            prefixIcon: Icon(Icons.email),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            labelText: _isLogin
-                                ? 'Account Password (Default Demo: demo123) *'
-                                : 'Create Account Password *',
-                            prefixIcon: const Icon(Icons.lock),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+          // ── feature chips ──
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _featureChip(Icons.eco_rounded,         'Zero Waste Network',  const Color(0xFF81C784)),
+              _featureChip(Icons.warning_amber_rounded, 'Disaster Relief',   const Color(0xFFFFB74D)),
+              _featureChip(Icons.verified_user_rounded, 'Verified NGO Hub',  const Color(0xFF64B5F6)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-                        // SUBMIT BUTTON
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 52),
-                            backgroundColor: Colors.green.shade800,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 2,
-                          ),
-                          onPressed: _isLoading ? null : _handleSubmit,
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Text(
-                                  _isLogin ? 'Log In to GreenDrop' : 'Create $_role Account',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                        ),
-                      ],
+  Widget _featureChip(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.65), width: 1.1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  SECTION 2 — Quick demo bar
+  // ════════════════════════════════════════════════════════════
+  Widget _buildDemoBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFC8E6C9), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bolt, size: 14, color: Colors.orange.shade700),
+              const SizedBox(width: 4),
+              Text(
+                'QUICK 1-CLICK DEMO LOGIN',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.9,
+                  color: Colors.green.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _demoBtn('Donor 👤',  Colors.green.shade700,  'DONOR'),
+              const SizedBox(width: 8),
+              _demoBtn('NGO 🏢',    Colors.blue.shade700,   'NGO'),
+              const SizedBox(width: 8),
+              _demoBtn('Admin ❤️',  Colors.orange.shade800, 'ADMIN'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _demoBtn(String label, Color color, String role) {
+    return Expanded(
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          side: BorderSide(color: color, width: 1.3),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        onPressed: () => _fillDemoAccount(role),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  SECTION 3 — Main form card
+  // ════════════════════════════════════════════════════════════
+  Widget _buildFormCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── pill toggle tabs ──
+          _buildToggleTabs(),
+          const SizedBox(height: 20),
+
+          // ── welcome text ──
+          Text(
+            _isLogin ? 'Welcome to GreenDrop 👋' : 'Create an Account 🌱',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF111111),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _isLogin
+                ? 'Sign in to access your donation dashboard, verified drives & relief tracking.'
+                : 'Join GreenDrop and start making a difference today.',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+          ),
+          const SizedBox(height: 20),
+
+          // ── register-only extras ──
+          if (!_isLogin) ...[
+            _sectionLabel('Account Type:'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _buildRoleCard('DONOR', 'Donor 👤', Colors.green),
+                const SizedBox(width: 8),
+                _buildRoleCard('NGO', 'NGO 🏢', Colors.blue),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _buildField(
+              controller: _nameController,
+              label: 'Full Name / Organization Name',
+              icon: Icons.person_outline,
+            ),
+            const SizedBox(height: 12),
+            _buildField(
+              controller: _phoneController,
+              label: 'Contact Phone Number',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            if (_role == 'NGO') ...[
+              _buildField(
+                controller: _darpanIdController,
+                label: 'NGO NITI Aayog Darpan ID',
+                icon: Icons.verified_outlined,
+              ),
+              const SizedBox(height: 12),
+              _buildField(
+                controller: _officeAddressController,
+                label: 'Registered Office Address',
+                icon: Icons.location_city_outlined,
+              ),
+              const SizedBox(height: 12),
+              _sectionLabel('NGO Verification Documents:'),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _uploadBtn('Attach Trust Deed', 'Trust Deed ✓', _trustDeedPath, () => _pickDocument('trust')),
+                  const SizedBox(width: 8),
+                  _uploadBtn('Attach 80G Cert',   '80G Attached ✓', _exemption80GPath, () => _pickDocument('80g')),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _uploadBtn('Attach 12A Registration Certificate', '12A Attached ✓',
+                  _certificate12APath, () => _pickDocument('12a'), full: true),
+              const SizedBox(height: 14),
+            ],
+          ],
+
+          // ── email field ──
+          _sectionLabel('Email Address *'),
+          const SizedBox(height: 6),
+          _buildField(
+            controller: _emailController,
+            label: 'donor@greendrop.com',
+            icon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
+            floatingLabel: false,
+          ),
+          const SizedBox(height: 14),
+
+          // ── password field ──
+          _sectionLabel('Password *'),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            style: const TextStyle(fontSize: 14),
+            decoration: InputDecoration(
+              hintText: '••••••••',
+              hintStyle: const TextStyle(fontSize: 18, letterSpacing: 3),
+              prefixIcon: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Icon(Icons.lock_outline, size: 20, color: Color(0xFF4CAF50)),
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  size: 20,
+                  color: Colors.grey.shade500,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFD8D8D8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: Color(0xFF4CAF50), width: 1.6),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ── remember me + forgot password ──
+          if (_isLogin)
+            Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _rememberMe,
+                    activeColor: const Color(0xFF4CAF50),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4)),
+                    onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('Remember me',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF444444))),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {},
+                  child: const Text(
+                    'Forgot password?',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFD4A017),
                     ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    ],
-  ),
-);
-}
 
-  Widget _buildRoleCard(String roleVal, String label, Color color) {
-    final isSelected = _role == roleVal;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _role = roleVal),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.15) : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? color : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
+          const SizedBox(height: 20),
+
+          // ── CTA button ──
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: _white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _isLoading ? null : _handleSubmit,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          color: _white, strokeWidth: 2.5),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _isLogin
+                              ? 'Log In to GreenDrop'
+                              : 'Create $_role Account',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_rounded, size: 18),
+                      ],
+                    ),
             ),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? color : Colors.black87,
-              ),
+        ],
+      ),
+    );
+  }
+
+  // ─── pill toggle tabs ───
+  Widget _buildToggleTabs() {
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          _tabOption(label: '↩ Log In',    isActive: _isLogin,  onTap: () => setState(() => _isLogin = true)),
+          _tabOption(label: '👤 Register', isActive: !_isLogin, onTap: () => setState(() => _isLogin = false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabOption(
+      {required String label,
+      required bool isActive,
+      required VoidCallback onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFF2E7D32) : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: isActive ? _white : const Color(0xFF666666),
             ),
           ),
         ),
@@ -697,37 +777,108 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildGlassFeatureBadge({
-    required IconData icon,
+  // ─── helper widgets ───
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF222222),
+        ),
+      );
+
+  Widget _buildField({
+    required TextEditingController controller,
     required String label,
-    required Color badgeColor,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool floatingLabel = true,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: badgeColor.withValues(alpha: 0.6),
-          width: 1.2,
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: floatingLabel ? label : null,
+        hintText: floatingLabel ? null : label,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(icon, size: 20, color: const Color(0xFF4CAF50)),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFD8D8D8)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:
+              const BorderSide(color: Color(0xFF4CAF50), width: 1.6),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: badgeColor),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.3,
+    );
+  }
+
+  Widget _buildRoleCard(String roleVal, String label, Color color) {
+    final isSelected = _role == roleVal;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _role = roleVal),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.12) : const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? color : const Color(0xFFDDDDDD),
+              width: isSelected ? 2 : 1,
             ),
           ),
-        ],
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              color: isSelected ? color : const Color(0xFF555555),
+            ),
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _uploadBtn(
+      String empty, String filled, String? path, VoidCallback onTap,
+      {bool full = false}) {
+    final attached = path != null;
+    final btn = OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        padding:
+            const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+        minimumSize: full ? const Size(double.infinity, 38) : Size.zero,
+        side: BorderSide(
+            color: attached ? Colors.green : Colors.blue.shade400),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      icon: Icon(
+        attached ? Icons.check_circle : Icons.upload_file,
+        size: 15,
+        color: attached ? Colors.green : Colors.blue.shade700,
+      ),
+      label: Text(
+        attached ? filled : empty,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+      ),
+      onPressed: onTap,
+    );
+    return full ? btn : Expanded(child: btn);
   }
 }
