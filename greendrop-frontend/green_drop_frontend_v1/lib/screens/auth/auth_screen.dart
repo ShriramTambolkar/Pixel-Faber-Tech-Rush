@@ -36,12 +36,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   final ImagePicker _picker = ImagePicker();
 
   // ─────────── colour tokens ───────────
-  static const _dark1  = Color(0xFF082215);
-  static const _dark2  = Color(0xFF13422A);
-  static const _green  = Color(0xFF1E5631);
-  static const _green2 = Color(0xFF2E7D52);
-  static const _accent = Color(0xFF4CAF50);
-  static const _white  = Colors.white;
+  static const _dark1 = Color(0xFF082215);
+  static const _dark2 = Color(0xFF13422A);
+  static const _green = Color(0xFF1E5631);
+  static const _white = Colors.white;
 
   Future<void> _pickDocument(String type) async {
     final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
