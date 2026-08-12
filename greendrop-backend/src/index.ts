@@ -502,12 +502,12 @@ app.post('/api/ngo/requirements/:id/offer-help', async (req: Request, res: Respo
 // 4. DONATION LIFECYCLE & QR VERIFICATION
 app.post('/api/donations', async (req: Request, res: Response) => {
   try {
-    const { donorId, donorName, title, category, condition, weightKg, address, photoUrls } = req.body;
+    const { donorId, donorName, title, category, condition, weightKg, address, photoUrls, isRecycleItem, quantity } = req.body;
     const normalizedWeight = Number(weightKg);
 
-    if (!donorId || !title?.trim() || !category || !condition || !address?.trim() ||
+    if (!donorId || !title?.trim() || !category || !address?.trim() ||
         !Number.isFinite(normalizedWeight) || normalizedWeight <= 0) {
-      return res.status(400).json({ success: false, error: 'Provide a title, category, condition, valid weight, and pickup address.' });
+      return res.status(400).json({ success: false, error: 'Provide a title, category, valid weight, and pickup address.' });
     }
 
     const safeDonorId = isValidId(donorId) ? donorId : new mongoose.Types.ObjectId().toString();
@@ -518,11 +518,13 @@ app.post('/api/donations', async (req: Request, res: Response) => {
       donorName: donorName || 'Anonymous Donor',
       title,
       category,
-      condition,
+      condition: condition || 'Good',
       weightKg: normalizedWeight,
       photoUrls: photoUrls && photoUrls.length > 0 ? photoUrls : ['https://images.unsplash.com/photo-1532629345422-7515f3d16bb0?w=500'],
       address: { formattedAddress: address, location: { type: 'Point', coordinates: [73.8567, 18.5204] } },
       verificationCode,
+      isRecycleItem: isRecycleItem === true,
+      quantity: quantity || '1 lot',
     });
 
     await newDonation.save();

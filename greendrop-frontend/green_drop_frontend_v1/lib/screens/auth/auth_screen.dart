@@ -111,6 +111,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               'SAMS Relief Network is dedicated to community welfare, disaster relief, and food distribution in Kothrud, Pune.',
         },
       };
+    } else if (email.contains('recycle') || role == 'RECYCLER') {
+      return {
+        '_id': 'demo_recycler_001',
+        'name': 'EcoGreen Upcyclers',
+        'email': email.isNotEmpty ? email : 'recycler@greendrop.org',
+        'role': 'RECYCLER',
+        'phoneNumber': '+91 9988776655',
+      };
     } else {
       return {
         '_id': 'demo_donor_001',
@@ -547,18 +555,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           ),
           const SizedBox(height: 20),
 
-          // ── register-only extras ──
+          const SizedBox(height: 14),
+          _sectionLabel(_isLogin ? 'Login Role:' : 'Account Type:'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildRoleCard('DONOR', 'Donor 👤', Colors.green),
+              const SizedBox(width: 6),
+              _buildRoleCard('NGO', 'NGO 🏢', Colors.blue),
+              const SizedBox(width: 6),
+              _buildRoleCard('RECYCLER', 'Recycler ♻️', Colors.teal),
+            ],
+          ),
+          const SizedBox(height: 14),
           if (!_isLogin) ...[
-            _sectionLabel('Account Type:'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _buildRoleCard('DONOR', 'Donor 👤', Colors.green),
-                const SizedBox(width: 8),
-                _buildRoleCard('NGO', 'NGO 🏢', Colors.blue),
-              ],
-            ),
-            const SizedBox(height: 14),
             _buildField(
               controller: _nameController,
               label: 'Full Name / Organization Name',
