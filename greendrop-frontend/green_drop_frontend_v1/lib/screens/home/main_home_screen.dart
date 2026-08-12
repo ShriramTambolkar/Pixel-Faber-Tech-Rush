@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/greendrop_native_logo.dart';
-import '../../widgets/animated_counter_text.dart';
 import '../auth/auth_screen.dart';
 import '../donations/browse_donations_feed.dart';
 import '../donations/create_donation_screen.dart';
@@ -360,9 +359,6 @@ class _HomeDashboardState extends State<_HomeDashboard> {
   List<dynamic> _recentDonations = [];
   List<dynamic> _recentEvents = [];
   bool _isLoading = true;
-  int _totalDonations = 0;
-  int _totalNgos = 0;
-  int _totalKg = 0;
 
   // Personal Impact Stats
   int _myDonationsCount = 0;
@@ -402,10 +398,6 @@ class _HomeDashboardState extends State<_HomeDashboard> {
         setState(() {
           _recentDonations = donations.take(6).toList();
           _recentEvents    = events.take(4).toList();
-          _totalDonations  = donations.length;
-          _totalKg = donations.fold<int>(
-              0, (s, d) => s + ((d['weightKg'] ?? 1) as num).toInt());
-          _totalNgos = 12; // static for now
           
           _myDonationsCount = myDons.isEmpty ? 3 : myDons.length;
           _myTotalKg = myKg == 0 ? 12 : myKg;
@@ -511,40 +503,7 @@ class _HomeDashboardState extends State<_HomeDashboard> {
             ),
           ),
 
-          // ── Platform Impact counter strip ──
-          SliverToBoxAdapter(
-            child: Container(
-              color: const Color(0xFFF0F7F0),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: _isLoading
-                  ? const Center(
-                      child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Color(0xFF2E7D32))))
-                  : Row(
-                      children: [
-                        _statPill(
-                            icon: Icons.volunteer_activism,
-                            value: _totalDonations,
-                            label: 'Donations'),
-                        _statDivider(),
-                        _statPill(
-                            icon: Icons.recycling,
-                            value: _totalKg,
-                            label: 'Kg Collected'),
-                        _statDivider(),
-                        _statPill(
-                            icon: Icons.verified_user_rounded,
-                            value: _totalNgos,
-                            label: 'NGOs Active'),
-                      ],
-                    ),
-            ),
-          ),
+
 
           // ── YOUR PERSONAL IMPACT DASHBOARD CARD ON HOME ──
           SliverToBoxAdapter(
@@ -874,32 +833,6 @@ class _HomeDashboardState extends State<_HomeDashboard> {
       ),
     );
   }
-
-  Widget _statPill(
-      {required IconData icon, required int value, required String label}) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.green.shade700, size: 22),
-          const SizedBox(height: 4),
-          AnimatedCounterText(
-            value: value,
-            style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF1B5E20)),
-          ),
-          Text(label,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF666666))),
-        ],
-      ),
-    );
-  }
-
-  Widget _statDivider() => Container(
-      height: 36,
-      width: 1,
-      color: const Color(0xFFCCCCCC));
 
   Widget _quickAction({
     required IconData icon,
