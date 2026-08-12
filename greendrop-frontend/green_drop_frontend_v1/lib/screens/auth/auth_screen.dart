@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import '../../widgets/greendrop_native_logo.dart';
 import '../home/main_home_screen.dart';
+import 'phone_otp_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -19,6 +20,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = true;
+  // Phone OTP verification state
+  String? _phoneVerifyToken; // non-null means phone has been verified
 
   final _emailController    = TextEditingController(text: 'donor@greendrop.com');
   final _passwordController = TextEditingController(text: 'demo123');
@@ -146,6 +149,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         'role': _role,
         'name': _nameController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
+        if (_phoneVerifyToken != null) 'phoneVerifyToken': _phoneVerifyToken,
       });
       if (_role == 'NGO') {
         body['ngoDetails'] = {
@@ -561,11 +565,90 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               icon: Icons.person_outline,
             ),
             const SizedBox(height: 12),
-            _buildField(
-              controller: _phoneController,
-              label: 'Contact Phone Number',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
+            // ── Phone field + Verify button ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildField(
+                    controller: _phoneController,
+                    label: 'Contact Phone Number',
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    suffixIcon: _phoneVerifyToken != null
+                        ? const Icon(Icons.verified_rounded,
+                            color: Color(0xFF2E7D32), size: 20)
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _phoneVerifyToken != null
+                          ? const Color(0xFF2E7D32)
+                          : Colors.white,
+                      foregroundColor: _phoneVerifyToken != null
+                          ? Colors.white
+                          : const Color(0xFF2E7D32),
+                      elevation: 0,
+                      side: const BorderSide(
+                          color: Color(0xFF2E7D32), width: 1.4),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    onPressed: _phoneVerifyToken != null
+                        ? null
+                        : () async {
+                            final phone = _phoneController.text.trim();
+                            if (phone.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Please enter your phone number first.')),
+                              );
+                              return;
+                            }
+                            final token = await Navigator.push<String>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PhoneOtpScreen(phoneNumber: phone),
+                              ),
+                            );
+                            if (token != null) {
+                              setState(() => _phoneVerifyToken = token);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    backgroundColor: Color(0xFF2E7D32),
+                                    content: Text(
+                                        '✅ Phone verified successfully!'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    child: _phoneVerifyToken != null
+                        ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.verified_rounded, size: 18),
+                              Text('Verified',
+                                  style: TextStyle(fontSize: 10)),
+                            ],
+                          )
+                        : const Text(
+                            'Verify\nPhone',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w700),
+                          ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             if (_role == 'NGO') ...[
@@ -791,6 +874,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     required IconData icon,
     TextInputType? keyboardType,
     bool floatingLabel = true,
+    Widget? suffixIcon,
   }) {
     return TextField(
       controller: controller,
@@ -803,6 +887,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           padding: const EdgeInsets.all(12),
           child: Icon(icon, size: 20, color: const Color(0xFF4CAF50)),
         ),
+        suffixIcon: suffixIcon,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(

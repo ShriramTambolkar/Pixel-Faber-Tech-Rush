@@ -18,6 +18,7 @@ export interface IUser extends Document {
   warningCount?: number;
   lastWarningReason?: string;
   isBanned?: boolean;
+  isPhoneVerified?: boolean;
   ngoDetails?: {
     registrationNumber?: string;
     darpanId?: string;
@@ -62,6 +63,7 @@ const userSchema = new Schema<IUser>(
     warningCount: { type: Number, default: 0 },
     lastWarningReason: { type: String, default: '' },
     isBanned: { type: Boolean, default: false },
+    isPhoneVerified: { type: Boolean, default: false },
     ngoDetails: {
       registrationNumber: { type: String },
       darpanId: { type: String },

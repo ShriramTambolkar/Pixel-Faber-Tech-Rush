@@ -76,10 +76,67 @@ function isValidId(id: string): boolean {
   return Boolean(id) && mongoose.isValidObjectId(id);
 }
 
+// ─────────────────────────────────────────────
+//  PHONE OTP STORE  (in-memory, 5-min TTL)
+// ─────────────────────────────────────────────
+const otpStore = new Map<string, { otp: string; expiresAt: number }>();
+
+function generateOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// POST /api/auth/send-otp
+app.post('/api/auth/send-otp', (req: Request, res: Response) => {
+  const { phoneNumber } = req.body;
+  if (!phoneNumber?.trim()) {
+    return res.status(400).json({ success: false, error: 'Phone number is required.' });
+  }
+  const otp = generateOtp();
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+  otpStore.set(phoneNumber.trim(), { otp, expiresAt });
+
+  // In production replace this with Twilio / Firebase Admin SMS send
+  console.log(`[OTP] Phone: ${phoneNumber}  OTP: ${otp}`);
+
+  res.json({
+    success: true,
+    message: 'OTP sent successfully.',
+    // Only expose OTP in test/demo mode — remove this line in production!
+    testOtp: otp,
+  });
+});
+
+// POST /api/auth/verify-otp
+app.post('/api/auth/verify-otp', (req: Request, res: Response) => {
+  const { phoneNumber, otp } = req.body;
+  if (!phoneNumber?.trim() || !otp?.trim()) {
+    return res.status(400).json({ success: false, error: 'Phone number and OTP are required.' });
+  }
+
+  const record = otpStore.get(phoneNumber.trim());
+  if (!record) {
+    return res.status(400).json({ success: false, error: 'No OTP found for this number. Please request a new OTP.' });
+  }
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(phoneNumber.trim());
+    return res.status(400).json({ success: false, error: 'OTP has expired. Please request a new one.' });
+  }
+  if (record.otp !== otp.trim()) {
+    return res.status(400).json({ success: false, error: 'Incorrect OTP. Please try again.' });
+  }
+
+  // Valid — remove the OTP and issue a simple verify token
+  otpStore.delete(phoneNumber.trim());
+  const verifyToken = Buffer.from(`${phoneNumber}:${Date.now()}`).toString('base64');
+
+  res.json({ success: true, verified: true, verifyToken, message: 'Phone number verified successfully!' });
+});
+
 // 1. AUTHENTICATION & PUBLIC PROFILES
+
 app.post('/api/auth/register', async (req: Request, res: Response) => {
   try {
-    const { role, name, email, password, phoneNumber, ngoDetails, adminSecretKey } = req.body;
+    const { role, name, email, password, phoneNumber, ngoDetails, adminSecretKey, phoneVerifyToken } = req.body;
 
     if (!name?.trim() || !email?.trim() || !password?.trim()) {
       return res.status(400).json({ success: false, error: 'Name, email, and password are required.' });
@@ -102,12 +159,16 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ success: false, error: 'User already exists with this email address.' });
 
+    // Check if phone was OTP-verified during registration
+    const isPhoneVerified = Boolean(phoneVerifyToken?.trim());
+
     const newUser = new User({
       role: role || 'DONOR',
       name,
       email,
       passwordHash: password,
       phoneNumber,
+      isPhoneVerified,
       ngoDetails: role === 'NGO' ? { ...ngoDetails, isVerified: true } : undefined,
     });
 
