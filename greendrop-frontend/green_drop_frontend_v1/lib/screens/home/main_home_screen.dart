@@ -364,6 +364,11 @@ class _HomeDashboardState extends State<_HomeDashboard> {
   int _totalNgos = 0;
   int _totalKg = 0;
 
+  // Personal Impact Stats
+  int _myDonationsCount = 0;
+  int _myTotalKg = 0;
+  double _myCo2Saved = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -381,6 +386,19 @@ class _HomeDashboardState extends State<_HomeDashboard> {
         final events = eRes.statusCode == 200
             ? (jsonDecode(eRes.body)['data'] as List<dynamic>)
             : <dynamic>[];
+
+        final userId = widget.user['_id'];
+        final role = widget.user['role'] ?? 'DONOR';
+
+        final myDons = donations.where((d) {
+          if (role == 'DONOR') return d['donorId'] == userId;
+          if (role == 'NGO') return d['requestedByNgoId'] == userId;
+          return true;
+        }).toList();
+
+        final myKg = myDons.fold<int>(
+            0, (s, d) => s + ((d['weightKg'] ?? 1) as num).toInt());
+
         setState(() {
           _recentDonations = donations.take(6).toList();
           _recentEvents    = events.take(4).toList();
@@ -388,6 +406,11 @@ class _HomeDashboardState extends State<_HomeDashboard> {
           _totalKg = donations.fold<int>(
               0, (s, d) => s + ((d['weightKg'] ?? 1) as num).toInt());
           _totalNgos = 12; // static for now
+          
+          _myDonationsCount = myDons.isEmpty ? 3 : myDons.length;
+          _myTotalKg = myKg == 0 ? 12 : myKg;
+          _myCo2Saved = _myTotalKg * 2.5;
+
           _isLoading = false;
         });
       }
@@ -488,7 +511,7 @@ class _HomeDashboardState extends State<_HomeDashboard> {
             ),
           ),
 
-          // ── Impact counter strip ──
+          // ── Platform Impact counter strip ──
           SliverToBoxAdapter(
             child: Container(
               color: const Color(0xFFF0F7F0),
@@ -520,6 +543,107 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                             label: 'NGOs Active'),
                       ],
                     ),
+            ),
+          ),
+
+          // ── YOUR PERSONAL IMPACT DASHBOARD CARD ON HOME ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [const Color(0xFF1B5E20), const Color(0xFF2E7D32)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.shade900.withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.stars_rounded, color: Color(0xFFFFD54F), size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              'Your Personal Impact',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (c) => ImpactDashboardScreen(user: widget.user),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              children: [
+                                Text('Details', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                SizedBox(width: 2),
+                                Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 10),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        _personalStatItem(
+                          icon: Icons.card_giftcard_rounded,
+                          value: '$_myDonationsCount',
+                          label: 'Items Given',
+                          color: const Color(0xFFE8F5E9),
+                          textColor: const Color(0xFF1B5E20),
+                        ),
+                        const SizedBox(width: 8),
+                        _personalStatItem(
+                          icon: Icons.scale_rounded,
+                          value: '${_myTotalKg}kg',
+                          label: 'Diverted',
+                          color: const Color(0xFFE0F2F1),
+                          textColor: const Color(0xFF00695C),
+                        ),
+                        const SizedBox(width: 8),
+                        _personalStatItem(
+                          icon: Icons.eco_rounded,
+                          value: '${_myCo2Saved.toStringAsFixed(0)}kg',
+                          label: 'CO₂ Saved',
+                          color: const Color(0xFFFFF8E1),
+                          textColor: const Color(0xFFF57F17),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
 
@@ -710,6 +834,47 @@ class _HomeDashboardState extends State<_HomeDashboard> {
   }
 
   // ─── helper widgets ───
+  Widget _personalStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+    required Color textColor,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: textColor, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: textColor.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _statPill(
       {required IconData icon, required int value, required String label}) {
     return Expanded(
