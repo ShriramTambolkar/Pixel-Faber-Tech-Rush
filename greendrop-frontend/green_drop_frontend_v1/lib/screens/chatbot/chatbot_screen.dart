@@ -68,36 +68,40 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     });
     _scrollToBottom();
 
+    final q = userQuery.toLowerCase();
     String reply = '';
 
-    // 1. Direct Generative Google Gemini 3.6 Flash AI Call
-    try {
-      final res = await ApiService.post('/chatbot/gemini', {'prompt': userQuery});
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        if (data['success'] == true && data['reply'] != null && data['reply'].toString().isNotEmpty) {
-          reply = data['reply'].toString().trim();
-        }
-      }
-    } catch (e) {
-      // Offline fallback
+    // 1. Fast High-Speed Instant Keyword Matching (0ms response time!)
+    if (q.contains('80g') || q.contains('tax') || q.contains('receipt')) {
+      reply = "📜 **80G Tax Receipts**: Generated automatically under Profile after completing donation handovers with verified NGOs. Valid for Income Tax deduction under Section 80G.";
+    } else if (q.contains('courier') || q.contains('porter') || q.contains('uber')) {
+      reply = "🚚 **Courier Dispatch**: NGOs can dispatch Porter or Uber Connect couriers directly from the donation feed with live driver & vehicle tracking!";
+    } else if (q.contains('passcode') || q.contains('qr') || q.contains('code') || q.contains('handshake')) {
+      reply = "🔐 **2-Way Handshake**: Donor displays 6-digit passcode / QR code to NGO pickup agent. Once verified on agent's app, pickup is marked completed instantly.";
+    } else if (q.contains('disaster') || q.contains('emergency') || q.contains('flood')) {
+      reply = "🚨 **Disaster Relief**: NGOs toggle emergency mode to broadcast a top emergency banner across all screens for urgent supply matching.";
+    } else if (q.contains('recycle') || q.contains('scrap') || q.contains('upcycle')) {
+      reply = "♻️ **Zero-Landfill Recycle Tier**: Post scrap paper, e-waste, textiles & metals. Verified recyclers & shredders pick up batches for 100% recycling.";
+    } else if (q.contains('ngo') || q.contains('directory')) {
+      reply = "🏢 **Verified NGO Directory**: Explore authenticated non-profits under Explore tab. Donors can view missions, office locations, and ratings.";
     }
 
-    // 2. Intelligent fallback ONLY if network or API is completely unavailable
+    // 2. High-Speed Gemini API call with tight 2.5s timeout for general queries
     if (reply.isEmpty) {
-      final q = userQuery.toLowerCase();
-      if (q.contains('donor') || q.contains('how to use') || q.contains('guide')) {
-        reply =
-            "🙋 **GreenDrop Donor Guide**:\n\n1. Tap '+' to list unused items.\n2. Local verified NGOs browse and request your item.\n3. Accept request & share 6-digit QR Pass at doorstep.\n4. Earn live 80G tax receipt and CO₂ impact points!";
-      } else if (q.contains('tax') || q.contains('80g')) {
-        reply = "📜 **80G Tax Receipts**: Generated automatically under Profile after completing donation handovers with verified NGOs.";
-      } else if (q.contains('courier') || q.contains('porter') || q.contains('uber')) {
-        reply = "🚚 **Courier Dispatch**: NGOs can dispatch Porter or Uber Connect couriers directly from the donation feed with live driver tracking!";
-      } else if (q.contains('disaster') || q.contains('relief')) {
-        reply = "🚨 **Disaster Relief**: NGOs toggle emergency mode to broadcast a 32px top ticker across all donor screens for instant supply matching.";
-      } else {
-        reply = "🤖 I am GreenDrop AI! I can guide you on donation listings, 80G tax receipts, Porter courier dispatches, 2-way passcodes, and disaster relief drives.";
-      }
+      try {
+        final res = await ApiService.post('/chatbot/gemini', {'prompt': userQuery})
+            .timeout(const Duration(milliseconds: 2500));
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          if (data['success'] == true && data['reply'] != null && data['reply'].toString().isNotEmpty) {
+            reply = data['reply'].toString().trim();
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (reply.isEmpty) {
+      reply = "🤖 I am GreenDrop AI! I can guide you on donation listings, 80G tax receipts, Porter courier dispatches, 2-way passcodes, and disaster relief drives.";
     }
 
     if (!mounted) return;

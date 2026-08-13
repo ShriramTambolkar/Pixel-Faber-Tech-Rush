@@ -53,7 +53,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     NotificationService().init();
 
     final warning = widget.user['warningMessage'] ?? widget.user['warning'];
-    _hasUnreadNotifications = warning != null && warning.toString().trim().isNotEmpty;
+    _hasUnreadNotifications = (warning != null && warning.toString().trim().isNotEmpty) || NotificationService().hasUnread;
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAdminWarning());
   }
@@ -497,7 +497,9 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                             ? 'Manage your campaigns & track incoming donations.'
                             : role == 'ADMIN'
                                 ? 'Platform overview & moderation tools.'
-                                : 'Make a difference — donate or recycle today.',
+                                : role == 'RECYCLER'
+                                    ? 'Browse scrap postings & claim zero-landfill batches.'
+                                    : 'Make a difference — donate or recycle today.',
                         style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 13),
@@ -629,10 +631,12 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                   Row(
                     children: [
                       _quickAction(
-                        icon: Icons.add_circle_outline_rounded,
-                        label: 'Post\nDonation',
+                        icon: role == 'RECYCLER'
+                            ? Icons.recycling_rounded
+                            : Icons.add_circle_outline_rounded,
+                        label: role == 'RECYCLER' ? 'Recycle\nHub' : 'Post\nDonation',
                         color: const Color(0xFF2E7D32),
-                        onTap: () => widget.onNavigate(1),
+                        onTap: () => widget.onNavigate(role == 'RECYCLER' ? 2 : 1),
                       ),
                       const SizedBox(width: 10),
                       _quickAction(
@@ -1028,8 +1032,28 @@ class _DonateTabState extends State<_DonateTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isRecycler = (widget.user['role'] ?? '') == 'RECYCLER';
+
     return Column(
       children: [
+        if (isRecycler)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.teal.shade50,
+            child: Row(
+              children: [
+                Icon(Icons.recycling, color: Colors.teal.shade800, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '📦 Recycler View: Browsing community listings. Use the Recycle tab to post or claim scrap materials.',
+                    style: TextStyle(fontSize: 11.5, color: Colors.teal.shade900, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
         // ── Sub-tab toggle bar ──
         Container(
           color: Colors.white,
