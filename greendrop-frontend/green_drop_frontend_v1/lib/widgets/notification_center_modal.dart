@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/notification_service.dart';
 
 class NotificationCenterModal extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -6,6 +7,7 @@ class NotificationCenterModal extends StatefulWidget {
   const NotificationCenterModal({super.key, required this.user});
 
   static void show(BuildContext context, Map<String, dynamic> user) {
+    NotificationService().markAllRead();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -39,6 +41,17 @@ class _NotificationCenterModalState extends State<NotificationCenterModal> {
         'time': 'Just now',
         'badge': 'Admin Alert',
         'isWarning': true,
+      });
+    }
+
+    for (var chatNotif in NotificationService.liveNotifications) {
+      notifications.add({
+        'type': chatNotif.type,
+        'title': chatNotif.title,
+        'subtitle': chatNotif.body,
+        'time': 'Recent',
+        'badge': '1-on-1 Chat',
+        'isWarning': false,
       });
     }
 
@@ -192,7 +205,45 @@ class _NotificationCenterModalState extends State<NotificationCenterModal> {
                           ),
                         );
                       }
-                      return const SizedBox.shrink();
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 1,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blue.shade100,
+                            child: const Icon(Icons.chat_bubble_outline, color: Colors.blue, size: 20),
+                          ),
+                          title: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                item['title'] ?? '1-on-1 Message',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  item['badge'] ?? 'Chat',
+                                  style: TextStyle(color: Colors.blue.shade900, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Text(
+                              item['subtitle'] ?? '',
+                              style: const TextStyle(fontSize: 12.5, color: Colors.black87),
+                            ),
+                          ),
+                        ),
+                      );
                     },
                   ),
           ),
