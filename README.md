@@ -26,3 +26,23 @@ GreenDrop is a full-stack material donation and disaster relief platform connect
 * **📊 Environmental Impact Dashboard**: Tangible metrics (CO₂ saved, water conserved, landfill items diverted) & Eco-Badges.
 * **💬 Direct 1-on-1 Messaging**: Real-time auto-polling chat for pickup coordination.
 * **🏆 NGO Impact & Achievements Showcase**: Public profile inspector, reviews, ratings, and achievement highlights.
+
+* ## My Contribution — Shriram Tambolkar
+
+As a team member, I contributed to the development and improvement of the
+Green Drop application.
+
+### Contributions
+
+- Implemented multiple UI improvements across the application to improve
+  usability, consistency, and overall user experience.
+- Redesigned and redeveloped the *Zero-Waste Cycle* feature.
+- Improved the user flow and presentation of the Zero-Waste Cycle functionality.
+- Integrated my changes with the existing application.
+- Tested and debugged the implemented changes to ensure proper functionality.
+
+### Key Contribution: Zero-Waste Cycle
+
+I redeveloped the Zero-Waste Cycle feature to improve its functionality
+and user experience while integrating it with the existing GreenDrop
+application.
